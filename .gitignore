@@ -5,6 +5,7 @@ nbs/.ipynb_checkpoints
 nbs/out2019.tif
 custom_map_server/main/LE70220491999322EDC01_stack.gtif
 custom_map_server/main/LE70220491999322EDC01_stack.gtif.aux.xml
+custom_map_server/main/out2019.tif
 .vscode
 
 # Byte-compiled / optimized / DLL files

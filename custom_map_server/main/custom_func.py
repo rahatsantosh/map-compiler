@@ -15,6 +15,12 @@ g = B(dataset=d, band_no=4)
 b = B(dataset=d, band_no=8)
 response = setup(r,g,b)
 
+d = get_dataset()
+g = B(dataset=d, band_no=4)
+b = B(dataset=d, band_no=8)
+ndvi = (b-g)/(b+g)
+response = setup(ndvi)
+
 Sample url request:
 http://127.0.0.1:8000/wms/?service=WMS&
 request=GetMap&
@@ -33,9 +39,7 @@ bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 #    return HttpResponse([coord_sys, projWin])
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[10566654.790142765,3169996.4370428305,10605790.548624776,3209132.19552484], coord_sys="EPSG:4326"):
-    #print(projWin, coord_sys)
     projWin = coord(projWin, coord_sys)
-    #input_band = convert_bands(input_band)
     dataset = gdal.Open(
         '/vsicurl/'+layer,
         gdal.GA_ReadOnly
@@ -50,6 +54,8 @@ class B():
             self._band = band
         else:
             self._band = norm(np.array(dataset.GetRasterBand(band_no).ReadAsArray()))
+        print('-----------------------------------------------')
+        print(self._band)
     
     @property
     def band(self):
@@ -73,7 +79,7 @@ class B():
         else:
             return B(band=self._band/y)
 
-def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, cmap='std'):
+def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, cmap='std', ip_minR=-0.5, ip_maxR=0.8):
     if (np.max(R.band)==0 and G is None and B is None) or (np.max(R.band)==0 and np.max(G.band)==0 and np.max(B.band)==0):
         im = np.zeros((256,256,4))
         img = Image.fromarray(im, mode='RGBA')
@@ -83,12 +89,20 @@ def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0
     if weight is None:
         weight = [1,1,1]
     if G is None and B is None:
-        im = np.array(norm(weight[0]*R.band, minR, maxR, minG, maxG, minB, maxB)[0])
+        print('---------------------------------------------',R.band.min(),R.band.max())
+        im = np.array(weight[0]*R.band)
+        '''img = Image.fromarray(im*255, mode='L')  ,ip_minR=ip_minR,ip_maxR=ip_maxR
+        response = HttpResponse(content_type="image/png")
+        np.array(norm(x=weight[0]*R.band, minR=minR, maxR=maxR, minG=minG, maxG=maxG, minB=minB, maxB=maxB)[0])
+        img.save(response, "PNG")
+        return response'''
         im = apply_cmap(im, cmap)
     else:
-        im = np.dstack(norm(weight[0]*R.band, weight[1]*G.band, weight[2]*B.band, minR, maxR, minG, maxG, minB, maxB))
-    _, ar = cv2.imencode('.png',im * 255)
+        im = np.dstack((weight[0]*R.band, weight[1]*G.band, weight[2]*B.band))
+    _, ar = cv2.imencode('.png',im)
     print(im)
+    print('========================')
+    print(im.min(),im.max())
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
 
@@ -122,4 +136,3 @@ def apply_cmap(im, cmap):
     else:
         grayscale = False
     return to_map(R=R, G=G, B=B, grayscale=grayscale)'''
-    
