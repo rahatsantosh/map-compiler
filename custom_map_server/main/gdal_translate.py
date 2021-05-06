@@ -37,7 +37,7 @@ def to_map(R, G=None, B=None, A=None, include_alpha=False, grayscale=False):
     img.save(response, "PNG")
     return response
 
-def norm(x, y=None, z=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, ip_minR=0, ip_maxR=2500, ip_minG=0, ip_maxG=2500, ip_minB=0, ip_maxB=4000):
+'''def norm(x, y=None, z=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, ip_minR=0, ip_maxR=2500, ip_minG=0, ip_maxG=2500, ip_minB=0, ip_maxB=4000):
     if y is None and z is None:
         x = (x-ip_minR)/(ip_maxR-ip_minR)
         x = ((maxR-minR)*x)+minR
@@ -48,7 +48,14 @@ def norm(x, y=None, z=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, ip_m
     x = ((maxB-minB)*x)+minB
     y = ((maxG-minG)*y)+minG
     z = ((maxR-minR)*z)+minR
-    return x * 255.0, y * 255.0, z * 255.0
+    return x * 255.0, y * 255.0, z * 255.0'''
+
+def norm(x, op_minR=0, op_maxR=1, ip_minR=0, ip_maxR=2500):
+    indices = np.where(x==0)
+    x = (x-ip_minR)/(ip_maxR-ip_minR)
+    x = ((op_maxR-op_minR)*x)+op_minR
+    x[indices] = 0
+    return x * 255.0
 
 def convert_band(band):
     return int(band[1:])
