@@ -48,12 +48,12 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[1056
     return out
 
 class B():
-    def __init__(self,dataset=None, band_no=0, band=None):
+    def __init__(self,dataset=None, band_no=0, band=None, ip_minR=0, ip_maxR=2500):
         #print(band_no, dataset)
         if dataset is None:
             self._band = band
         else:
-            self._band = norm(np.array(dataset.GetRasterBand(band_no).ReadAsArray()))
+            self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=ip_minR,ip_maxR=ip_maxR)
     
     @property
     def band(self):
