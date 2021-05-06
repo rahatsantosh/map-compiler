@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 import cv2
 from django.http import HttpResponse
-from .gdal_translate import *
+from .gdal_translate import coord, norm
 
 '''
 Sample script:
