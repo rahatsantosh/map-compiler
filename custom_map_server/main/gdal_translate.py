@@ -13,8 +13,6 @@ def coord(projWin, coord_sys):
     projWin[3],projWin[2] = transformer.transform(projWin[2], projWin[3])
     return projWin
 
-def stretch():pass#TODO: for nested functions
-
 def to_map(R, G=None, B=None, A=None, include_alpha=False, grayscale=False):
     if grayscale:
         im = R
