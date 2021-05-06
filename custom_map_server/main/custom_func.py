@@ -54,8 +54,6 @@ class B():
             self._band = band
         else:
             self._band = norm(np.array(dataset.GetRasterBand(band_no).ReadAsArray()))
-        print('-----------------------------------------------')
-        print(self._band)
     
     @property
     def band(self):
@@ -90,7 +88,7 @@ def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0
         weight = [1,1,1]
     if G is None and B is None:
         print('---------------------------------------------',R.band.min(),R.band.max())
-        im = np.array(weight[0]*R.band)
+        im = np.array(norm(x = weight[0]*R.band,ip_minR=ip_minR,ip_maxR=ip_maxR))
         '''img = Image.fromarray(im*255, mode='L')  ,ip_minR=ip_minR,ip_maxR=ip_maxR
         response = HttpResponse(content_type="image/png")
         np.array(norm(x=weight[0]*R.band, minR=minR, maxR=maxR, minG=minG, maxG=maxG, minB=minB, maxB=maxB)[0])
@@ -100,9 +98,9 @@ def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0
     else:
         im = np.dstack((weight[0]*R.band, weight[1]*G.band, weight[2]*B.band))
     _, ar = cv2.imencode('.png',im)
-    print(im)
+    '''print(im)
     print('========================')
-    print(im.min(),im.max())
+    print(im.min(),im.max())'''
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
 
