@@ -77,7 +77,17 @@ class B():
         else:
             return B(band=self._band/y)
 
-def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, cmap='std', ip_minR=-0.5, ip_maxR=0.8):
+def setup(
+    R, G=None, B=None,
+    weight=None, 
+    op_minR=0, op_maxR=1, 
+    op_minG=0, op_maxG=1, 
+    op_minB=0, op_maxB=1,  
+    ip_minR=-0.5, ip_maxR=0.8, 
+    ip_minG=-0.5, ip_maxG=0.8, 
+    ip_minB=-0.5, ip_maxB=0.8,
+    cmap='std'
+    ):
     if (np.max(R.band)==0 and G is None and B is None) or (np.max(R.band)==0 and np.max(G.band)==0 and np.max(B.band)==0):
         im = np.zeros((256,256,4))
         img = Image.fromarray(im, mode='RGBA')
@@ -87,20 +97,23 @@ def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0
     if weight is None:
         weight = [1,1,1]
     if G is None and B is None:
-        print('---------------------------------------------',R.band.min(),R.band.max())
-        im = np.array(norm(x = weight[0]*R.band,ip_minR=ip_minR,ip_maxR=ip_maxR))
-        '''img = Image.fromarray(im*255, mode='L')  ,ip_minR=ip_minR,ip_maxR=ip_maxR
-        response = HttpResponse(content_type="image/png")
-        np.array(norm(x=weight[0]*R.band, minR=minR, maxR=maxR, minG=minG, maxG=maxG, minB=minB, maxB=maxB)[0])
-        img.save(response, "PNG")
-        return response'''
+        im = np.array(norm(
+            x = weight[0]*R.band,
+            op_minR=op_minR, op_maxR=op_maxR,
+            ip_minR=ip_minR, ip_maxR=ip_maxR))
         im = apply_cmap(im, cmap)
     else:
-        im = np.dstack((weight[0]*R.band, weight[1]*G.band, weight[2]*B.band))
+        im = np.dstack(norm(
+            x=weight[0]*R.band, 
+            y=weight[1]*G.band, 
+            z=weight[2]*B.band,
+            op_minR=op_minR, op_maxR=op_maxR,
+            op_minG=op_minG, op_maxG=op_maxG,
+            op_minB=op_minB, op_maxB=op_maxB,
+            ip_minR=ip_minR, ip_maxR=ip_maxR,
+            ip_minG=ip_minG, ip_maxG=ip_maxG,
+            ip_minB=ip_minB, ip_maxB=ip_maxB))
     _, ar = cv2.imencode('.png',im)
-    '''print(im)
-    print('========================')
-    print(im.min(),im.max())'''
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
 

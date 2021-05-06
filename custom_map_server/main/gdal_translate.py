@@ -35,25 +35,34 @@ def to_map(R, G=None, B=None, A=None, include_alpha=False, grayscale=False):
     img.save(response, "PNG")
     return response
 
-'''def norm(x, y=None, z=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1, ip_minR=0, ip_maxR=2500, ip_minG=0, ip_maxG=2500, ip_minB=0, ip_maxB=4000):
+def norm(
+    x, y=None, z=None,
+    op_minR=0, op_maxR=1,
+    op_minG=0, op_maxG=1,
+    op_minB=0, op_maxB=1,
+    ip_minR=0, ip_maxR=2500,
+    ip_minG=0, ip_maxG=2500,
+    ip_minB=0, ip_maxB=4000):
     if y is None and z is None:
+        indices = np.where(x==0)
         x = (x-ip_minR)/(ip_maxR-ip_minR)
-        x = ((maxR-minR)*x)+minR
+        x = ((op_maxR-op_minR)*x)+op_minR
+        x[indices] = 0
         return x * 255.0
+    indices1 = np.where(x==0)
+    indices2 = np.where(y==0)
+    indices3 = np.where(z==0)
     x = (x-ip_minB)/(ip_maxB-ip_minB)
     y = (x-ip_minG)/(ip_maxG-ip_minG)
     z = (x-ip_minR)/(ip_maxB-ip_minR)
-    x = ((maxB-minB)*x)+minB
-    y = ((maxG-minG)*y)+minG
-    z = ((maxR-minR)*z)+minR
-    return x * 255.0, y * 255.0, z * 255.0'''
+    x = ((op_maxB-op_minB)*x)+op_minB
+    y = ((op_maxG-op_minG)*y)+op_minG
+    z = ((op_maxR-op_minR)*z)+op_minR
+    x[indices1] = 0
+    y[indices2] = 0
+    z[indices3] = 0
+    return x * 255.0, y * 255.0, z * 255.0
 
-def norm(x, op_minR=0, op_maxR=1, ip_minR=0, ip_maxR=2500):
-    indices = np.where(x==0)
-    x = (x-ip_minR)/(ip_maxR-ip_minR)
-    x = ((op_maxR-op_minR)*x)+op_minR
-    x[indices] = 0
-    return x * 255.0
 
 def convert_band(band):
     return int(band[1:])
