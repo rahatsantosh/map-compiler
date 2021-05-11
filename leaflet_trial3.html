@@ -64,28 +64,13 @@
             };
             var wmsLayer;
             var lcontrol = L.control.layers(baseMaps).addTo(map);
-            /*
-            setup = {
-                "input": ["B08","B02","B03"],
-                "min_threshold": [0,0,0],
-                "max_threshold": [1,1,1],
-                "grayscale": True,
-                "weight": [1,1,1]
-            };*/
 
             document.getElementById("btn").addEventListener("click", function(){
                 setup = myCodeMirror.getValue();
-                console.log(setup);
                 if(map.hasLayer(wmsLayer)){
                     map.removeLayer(wmsLayer);
                     lcontrol.removeLayer(wmsLayer)
                 }
-                // var wmsLayer = L.tileLayer.wms("http://127.0.0.1:8000/wms/", {
-                //     input_band: setup['input'],
-                //     min_threshold: setup['min_threshold'],
-                //     max_threshold: setup['max_threshold'],
-                //     weight: setup['weight']
-                // }).addTo(map);
                 wmsLayer = L.tileLayer.wms("http://127.0.0.1:8000/wms/", {
                     request_script: setup
                 }).addTo(map);
