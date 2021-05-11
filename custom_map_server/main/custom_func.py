@@ -62,9 +62,6 @@ CustomCmap.set_under('red')
 bounds = np.array([0.0, 5, 10,20, 30, 50, 60, 70,80, 90, 110, 120, 140, 160, 180, 200, 220, 240, 260, 280 ])
 norm_ = colors.BoundaryNorm(bounds, CustomCmap.N)'''
 
-#def ret(projWin, coord_sys):
-#    print(projWin,coord_sys,'-------------------------------')
-#    return HttpResponse([coord_sys, projWin])
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[10566654.790142765,3169996.4370428305,10605790.548624776,3209132.19552484], coord_sys="EPSG:4326"):
     projWin = coord(projWin, coord_sys)
@@ -126,10 +123,6 @@ class RandomForest(object):
         print(self.colors)
     
     def predict(self, img, bands, index=[4,3,2], minmax=(0,8000)):
-        '''if index is not None:
-            if minmax is None:
-                minmax=(0,10000)
-            img = color_stretch(img, index, minmax)'''
         img = img.ReadAsArray()
         img = np.moveaxis(img, 0, -1)
         img_as_array = img[:, :, :bands].reshape(-1,bands)
