@@ -27,25 +27,19 @@ response = setup(ndvi)
 
 d = get_dataset()
 rf = RandomForest(saved_path='./main/model1.joblib')
-response = setup(
-    R=rf.predict(d,7).prediction_map,
-    ip_minR=1, ip_maxR=7,
-)
-
-d = get_dataset()
-rf = RandomForest(saved_path='./main/model1.joblib')
 colors = dict((
-    (0, (0, 0, 0, 255)),  # Nodata
-    (1, (0, 150, 0, 255)),  # Forest
-    (2, (0, 0, 255, 255)),  # Water
-    (3, (0, 255, 0, 255)),  # Herbaceous
-    (4, (160, 82, 45, 255)),  # Barren
-    (5, (255, 0, 0, 255))  # Urban
+    (0, (0, 0, 0)),  # Nodata
+    (1, (0, 150, 0)),  # Forest
+    (2, (0, 0, 255)),  # Water
+    (3, (0, 255, 0)),  # Herbaceous
+    (4, (160, 82, 45)),  # Barren
+    (5, (255, 0, 0))  # Urban
 ))
 rf.colormap = colors
 response = setup(
-    R=rf.predict(d,7).prediction_map
+    R=rf.predict(d,7).prediction_map,
     ip_minR=1, ip_maxR=7,
+    cmap=colors
 )
 
 Sample url request:
