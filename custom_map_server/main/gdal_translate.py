@@ -6,21 +6,6 @@ from pyproj import CRS, Transformer
 from django.http import HttpResponse
 from sklearn.ensemble import RandomForestClassifier
 
-'''
-colorsList = [ (0.1, 0.2, 0.5, 0.0) , 'white', '#CE7E45', '#DF923D','#F1B555','#FCD163', '#99B718', '#74A901', '#66A000', '#529400', '#3E8601', '#207401', '#056201', '#004C00', '#023B01', '#012E01', '#011D01', '#011301']
-CustomCmap = colors.ListedColormap(colorsList)
-CustomCmap.set_over('white')
-CustomCmap.set_under('red')
-bounds = np.array([0.0, 5, 10,20, 30, 50, 60, 70,80, 90, 110, 120, 140, 160, 180, 200, 220, 240, 260, 280 ])
-norm = colors.BoundaryNorm(bounds, CustomCmap.N)
-
-normalized = norm(dat)
-        xmap = CustomCmap(normalized)
-        img = Image.fromarray(np.uint8(xmap*255))
-        response = HttpResponse(content_type="image/png")
-        img.save(response, "PNG")
-        return response
-'''
     
 def coord(projWin, coord_sys):
     transformer = Transformer.from_crs("EPSG:3857", coord_sys)
