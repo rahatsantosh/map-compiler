@@ -2,8 +2,12 @@ from osgeo import gdal, gdal_array
 import numpy as np
 from PIL import Image
 import cv2
+import matplotlib.pyplot as plt
+from matplotlib import colors
 from django.http import HttpResponse
-from .gdal_translate import coord, norm
+from .gdal_translate import coord, norm, color_stretch, apply_cmap
+import joblib
+import os
 
 '''
 Sample script:
@@ -21,6 +25,29 @@ b = B(dataset=d, band_no=8)
 ndvi = (b-g)/(b+g)
 response = setup(ndvi)
 
+d = get_dataset()
+rf = RandomForest(saved_path='./main/model1.joblib')
+response = setup(
+    R=rf.predict(d,7).prediction_map,
+    ip_minR=1, ip_maxR=7,
+)
+
+d = get_dataset()
+rf = RandomForest(saved_path='./main/model1.joblib')
+colors = dict((
+    (0, (0, 0, 0, 255)),  # Nodata
+    (1, (0, 150, 0, 255)),  # Forest
+    (2, (0, 0, 255, 255)),  # Water
+    (3, (0, 255, 0, 255)),  # Herbaceous
+    (4, (160, 82, 45, 255)),  # Barren
+    (5, (255, 0, 0, 255))  # Urban
+))
+rf.colormap = colors
+response = setup(
+    R=rf.predict(d,7).prediction_map
+    ip_minR=1, ip_maxR=7,
+)
+
 Sample url request:
 http://127.0.0.1:8000/wms/?service=WMS&
 request=GetMap&
@@ -34,6 +61,13 @@ srs=EPSG%3A3857&
 bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 '''
 
+'''colorsList = [ (0.1, 0.2, 0.5, 0.0) , 'white', '#CE7E45', '#DF923D','#F1B555','#FCD163', '#99B718', '#74A901', '#66A000', '#529400', '#3E8601', '#207401', '#056201', '#004C00', '#023B01', '#012E01', '#011D01', '#011301']
+CustomCmap = colors.ListedColormap(colorsList)
+CustomCmap.set_over('white')
+CustomCmap.set_under('red')
+bounds = np.array([0.0, 5, 10,20, 30, 50, 60, 70,80, 90, 110, 120, 140, 160, 180, 200, 220, 240, 260, 280 ])
+norm_ = colors.BoundaryNorm(bounds, CustomCmap.N)'''
+
 #def ret(projWin, coord_sys):
 #    print(projWin,coord_sys,'-------------------------------')
 #    return HttpResponse([coord_sys, projWin])
@@ -41,7 +75,8 @@ bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[10566654.790142765,3169996.4370428305,10605790.548624776,3209132.19552484], coord_sys="EPSG:4326"):
     projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
-        '/vsicurl/'+layer,
+        #'/vsicurl/'+layer,
+        './main/out2019.tif',
         gdal.GA_ReadOnly
         )
     out = gdal.Warp('', dataset, width=256, height=256, outputBounds=projWin, format='MEM')
@@ -77,6 +112,50 @@ class B():
         else:
             return B(band=self._band/y)
 
+class RandomForest(object):
+    def __init__(self,saved_path=None,colors=None,**kwargs):
+        if saved_path is not None:
+            self.rf = joblib.load(saved_path)
+        else:
+            self.rf = RandomForestClassifier(**kwargs)
+        self.colors = ()
+        self.class_prediction = None
+    
+    def dump(self, path):
+        joblib.dump(self.rf, path)
+    
+    def fit(self, X, y):
+        self.rf.fit(X, y)
+    
+    def colormap(self, colors):
+        self.colors = colors
+        print(self.colors)
+    
+    def predict(self, img, bands, index=[4,3,2], minmax=(0,8000)):
+        '''if index is not None:
+            if minmax is None:
+                minmax=(0,10000)
+            img = color_stretch(img, index, minmax)'''
+        img = img.ReadAsArray()
+        img = np.moveaxis(img, 0, -1)
+        img_as_array = img[:, :, :bands].reshape(-1,bands)
+        self.class_prediction = self.rf.predict(img_as_array)
+        self.class_prediction = self.class_prediction.reshape(img[:, :, 0].shape)
+        
+        return self
+    
+    @property
+    def prediction_map(self):
+        n = self.class_prediction.max()
+        print(self.colors)
+        for k in self.colors:
+            v = self.colors[k]
+            _v = [_v / 255.0 for _v in v]
+            self.colors[k] = _v
+        index_colors = [self.colors[key] if key in self.colors else (255, 255, 255, 0) for key in range(1, n + 1)]
+        cmap = plt.matplotlib.colors.ListedColormap(index_colors, 'Classification', n)
+        return B(band=self.class_prediction)
+
 def setup(
     R, G=None, B=None,
     weight=None, 
@@ -86,7 +165,8 @@ def setup(
     ip_minR=-0.5, ip_maxR=0.8, 
     ip_minG=-0.5, ip_maxG=0.8, 
     ip_minB=-0.5, ip_maxB=0.8,
-    cmap='std'
+    cmap=None,
+    cmap_order=1
     ):
     if (np.max(R.band)==0 and G is None and B is None) or (np.max(R.band)==0 and np.max(G.band)==0 and np.max(B.band)==0):
         im = np.zeros((256,256,4))
@@ -97,11 +177,15 @@ def setup(
     if weight is None:
         weight = [1,1,1]
     if G is None and B is None:
+        im  = weight[0] * R.band
+        if cmap is not None and cmap_order==1:
+            im = apply_cmap(im, cmap)
         im = np.array(norm(
-            x = weight[0]*R.band,
+            x = im,
             op_minR=op_minR, op_maxR=op_maxR,
             ip_minR=ip_minR, ip_maxR=ip_maxR))
-        im = apply_cmap(im, cmap)
+        if cmap is not None and cmap_order==0:
+            im = apply_cmap(im, cmap)
     else:
         im = np.dstack(norm(
             x=weight[0]*R.band, 
@@ -113,19 +197,10 @@ def setup(
             ip_minR=ip_minR, ip_maxR=ip_maxR,
             ip_minG=ip_minG, ip_maxG=ip_maxG,
             ip_minB=ip_minB, ip_maxB=ip_maxB))
+    print(im.max(),im.min())
     _, ar = cv2.imencode('.png',im)
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
-
-def apply_cmap(im, cmap):
-    if cmap=='red':
-        return np.dstack((np.zeros(im.shape),np.zeros(im.shape),im))
-    elif cmap=='green':
-        return np.dstack((np.zeros(im.shape),im,np.zeros(im.shape)))
-    elif cmap=='blue':
-        return np.dstack((im,np.zeros(im.shape),np.zeros(im.shape)))
-    else:
-        return im
 
 '''def setup(R, G=None, B=None, weight=None, minR=0, maxR=1, minG=0, maxG=1, minB=0, maxB=1):
     if weight is None:

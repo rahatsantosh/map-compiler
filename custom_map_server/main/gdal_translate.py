@@ -4,8 +4,23 @@ from PIL import Image
 import cv2
 from pyproj import CRS, Transformer
 from django.http import HttpResponse
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.ensemble import RandomForestClassifier
 
+'''
+colorsList = [ (0.1, 0.2, 0.5, 0.0) , 'white', '#CE7E45', '#DF923D','#F1B555','#FCD163', '#99B718', '#74A901', '#66A000', '#529400', '#3E8601', '#207401', '#056201', '#004C00', '#023B01', '#012E01', '#011D01', '#011301']
+CustomCmap = colors.ListedColormap(colorsList)
+CustomCmap.set_over('white')
+CustomCmap.set_under('red')
+bounds = np.array([0.0, 5, 10,20, 30, 50, 60, 70,80, 90, 110, 120, 140, 160, 180, 200, 220, 240, 260, 280 ])
+norm = colors.BoundaryNorm(bounds, CustomCmap.N)
+
+normalized = norm(dat)
+        xmap = CustomCmap(normalized)
+        img = Image.fromarray(np.uint8(xmap*255))
+        response = HttpResponse(content_type="image/png")
+        img.save(response, "PNG")
+        return response
+'''
     
 def coord(projWin, coord_sys):
     transformer = Transformer.from_crs("EPSG:3857", coord_sys)
@@ -35,6 +50,14 @@ def to_map(R, G=None, B=None, A=None, include_alpha=False, grayscale=False):
     img.save(response, "PNG")
     return response
 
+def apply_cmap(im, cmap):
+    palette = np.zeros(shape=(256, 3), dtype=np.uint8)
+    for key in cmap.keys():
+        palette[key] = cmap[key]
+    im_ = im.flatten().astype(np.uint)
+    color_image = palette[im_]
+    return np.reshape(color_image, (im.shape[0],im.shape[1],3))
+
 def norm(
     x, y=None, z=None,
     op_minR=0, op_maxR=1,
@@ -63,6 +86,20 @@ def norm(
     z[indices3] = 0
     return x * 255.0, y * 255.0, z * 255.0
 
+def color_stretch(image, index, minmax=(0, 10000)):
+    colors = image[:, :, index].astype(np.float64)
+
+    max_val = minmax[1]
+    min_val = minmax[0]
+
+    # Enforce maximum and minimum values
+    colors[colors[:, :, :] > max_val] = max_val
+    colors[colors[:, :, :] < min_val] = min_val
+
+    for b in range(colors.shape[2]):
+        colors[:, :, b] = colors[:, :, b] * 1 / (max_val - min_val)
+        
+    return colors
 
 def convert_band(band):
     return int(band[1:])
