@@ -1,13 +1,12 @@
-from osgeo import gdal, gdal_array
+from osgeo import gdal
 import numpy as np
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
-from matplotlib import colors
 from django.http import HttpResponse
-from .gdal_translate import coord, norm, color_stretch, apply_cmap
+from .gdal_translate import coord, norm, apply_cmap
 import joblib
-import os
+from sklearn.ensemble import RandomForestClassifier
 
 '''
 Sample script:
@@ -41,6 +40,14 @@ response = setup(
     ip_minR=1, ip_maxR=7,
     cmap=colors
 )
+
+d = get_dataset()
+g = B(dataset=d, band_no=4)
+b = B(dataset=d, band_no=8)
+ndvi = (b-g)/(b+g)
+response = setup(
+				R=ndvi.conv2D(kernel=[[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]])
+        )
 
 Sample url request:
 http://127.0.0.1:8000/wms/?service=WMS&
@@ -102,6 +109,36 @@ class B():
             return B(band=np.divide(self._band, y.band, out=np.zeros_like(self._band), where=y.band!=0, casting="unsafe"))
         else:
             return B(band=self._band/y)
+    
+    def conv2D(self, kernel, padding=0, strides=1):
+        image = self.band
+        kernel = np.flipud(np.fliplr(kernel))
+        xKernShape = kernel.shape[0]
+        yKernShape = kernel.shape[1]
+        xImgShape = image.shape[0]
+        yImgShape = image.shape[1]
+        xOutput = int(((xImgShape - xKernShape + 2 * padding) / strides) + 1)
+        yOutput = int(((yImgShape - yKernShape + 2 * padding) / strides) + 1)
+        output = np.zeros((xOutput, yOutput))
+        if padding != 0:
+            imagePadded = np.zeros((image.shape[0] + padding*2, image.shape[1] + padding*2))
+            imagePadded[int(padding):int(-1 * padding), int(padding):int(-1 * padding)] = image
+            print(imagePadded)
+        else:
+            imagePadded = image
+        for y in range(image.shape[1]):
+            if y > image.shape[1] - yKernShape:
+                break
+            if y % strides == 0:
+                for x in range(image.shape[0]):
+                    if x > image.shape[0] - xKernShape:
+                        break
+                    try:
+                        if x % strides == 0:
+                            output[x, y] = (kernel * imagePadded[x: x + xKernShape, y: y + yKernShape]).sum()
+                    except:
+                        break
+        return B(band=output)
 
 class RandomForest(object):
     def __init__(self,saved_path=None,colors=None,**kwargs):
@@ -115,12 +152,14 @@ class RandomForest(object):
     def dump(self, path):
         joblib.dump(self.rf, path)
     
+    def load(self, path):
+        self.rf = joblib.load(path)
+    
     def fit(self, X, y):
         self.rf.fit(X, y)
     
     def colormap(self, colors):
         self.colors = colors
-        print(self.colors)
     
     def predict(self, img, bands, index=[4,3,2], minmax=(0,8000)):
         img = img.ReadAsArray()
