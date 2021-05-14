@@ -4,9 +4,11 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 from django.http import HttpResponse
-from .gdal_translate import coord, norm, apply_cmap
+from .gdal_translate import coord, norm, apply_cmap, prepare_data
 import joblib
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.decomposition import PCA
+from sklearn.base import TransformerMixin, ClassifierMixin
 
 '''
 Sample script:
@@ -140,8 +142,9 @@ class B():
                         break
         return B(band=output)
 
+
 class RandomForest(object):
-    def __init__(self,saved_path=None,colors=None,**kwargs):
+    def __init__(self,saved_path=None,**kwargs):
         if saved_path is not None:
             self.rf = joblib.load(saved_path)
         else:
@@ -155,7 +158,22 @@ class RandomForest(object):
     def load(self, path):
         self.rf = joblib.load(path)
     
-    def fit(self, X, y):
+    def fit(self, data):
+        '''
+        Format 
+        {
+            'layer':layer,
+            'coord_format':coord_format,
+            'bands':bands_list
+            'data':{
+                1:{'coordinates':X,'labels':y},
+                ...
+            }
+        }
+        '''
+        X, y = prepare_data(
+            layer=data['layer'],coord_format=data['coord_format'],data=data,bands=data['bands']
+        )
         self.rf.fit(X, y)
     
     def colormap(self, colors):

@@ -4,13 +4,57 @@ from PIL import Image
 import cv2
 from pyproj import CRS, Transformer
 from django.http import HttpResponse
-from sklearn.ensemble import RandomForestClassifier
 
+def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
+    dataset = gdal.Open(
+        #'/vsicurl/'+layer,
+        './main/out2019.tif',
+        gdal.GA_ReadOnly
+        )
+    return dataset
+
+def prepare_data(coord_format, data, bands, layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
+    coordinates = []
+    labels = []
+    for x in data.values():
+        coordinates.append(x['coordinates'])
+        labels.append(x['labels'])
+    coord_format = [coord_format] * len(coordinates)
+    coordinates = list(map(coord, coordinates, coord_format))
+    dataset = get_dataset(layer)
+
+    def prepare_data_bandwise(band):
+        band = dataset.GetRasterBand(band)
+        cols = dataset.RasterXSize
+        rows = dataset.RasterYSize
+
+        transform = dataset.GetGeoTransform()
+
+        xOrigin = transform[0]
+        yOrigin = transform[3]
+        pixelWidth = transform[1]
+        pixelHeight = -transform[5]
+
+        data = band.ReadAsArray(0, 0, cols, rows)
+
+        points_list = coordinates
+
+        pixels = []
+        for point in points_list:
+            col = int((point[0] - xOrigin) / pixelWidth)
+            row = int((yOrigin - point[1] ) / pixelHeight)
+
+            pixels.append(data[row][col])
+        return np.asarray(pixels)
+
+    band_data = np.reshape(np.asarray(map(prepare_data_bandwise,bands)).T, (len(coordinates), len(bands)))
+    return band_data, labels
     
 def coord(projWin, coord_sys):
     transformer = Transformer.from_crs("EPSG:3857", coord_sys)
     projWin[1],projWin[0] = transformer.transform(projWin[0], projWin[1])
-    projWin[3],projWin[2] = transformer.transform(projWin[2], projWin[3])
+    if len(projWin) > 2:
+        projWin[3],projWin[2] = transformer.transform(projWin[2], projWin[3])
     return projWin
 
 def to_map(R, G=None, B=None, A=None, include_alpha=False, grayscale=False):
