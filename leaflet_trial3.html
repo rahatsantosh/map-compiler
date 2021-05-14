@@ -33,10 +33,11 @@
         <title>Trial</title>
     </head>
     <body>
-        <div id="map"></div>
-        <div class="container">
+        <h1>Map Compiler</h1>
+        <div id="map" style="width: 75%; height: 100%; float:left"></div>
+        <div class="container" style="width: 25%; height: 25%; float:left">
          <button class="button" id="btn">Run</button> 
-         <div id="codeeditor"></div> 
+         <div id="codeeditor" style="height: 100%"></div> 
         </div>
         <script>
             var myCodeMirror = CodeMirror(document.getElementById('codeeditor'), {
