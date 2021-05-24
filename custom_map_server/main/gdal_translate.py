@@ -1,9 +1,21 @@
-from osgeo import gdal, gdal_array
+from osgeo import gdal, osr
 import numpy as np
 from PIL import Image
 import cv2
 from pyproj import CRS, Transformer
 from django.http import HttpResponse
+from typing import Dict, Any
+import hashlib
+import json
+
+def dict_hash(dictionary: Dict[str, Any]) -> str:
+    """MD5 hash of a dictionary."""
+    dhash = hashlib.md5()
+    # We need to sort arguments so {'a': 1, 'b': 2} is
+    # the same as {'b': 2, 'a': 1}
+    encoded = json.dumps(dictionary, sort_keys=True).encode()
+    dhash.update(encoded)
+    return dhash.hexdigest()
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
     dataset = gdal.Open(
@@ -16,12 +28,15 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
 def prepare_data(coord_format, data, bands, layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
     coordinates = []
     labels = []
-    for x in data.values():
+    dataset = get_dataset(layer)
+    proj = osr.SpatialReference(wkt=dataset.GetProjection())
+    epsg = "EPSG:"+str(proj.GetAttrValue('AUTHORITY',1))
+    for x in data:
         coordinates.append(x['coordinates'])
         labels.append(x['labels'])
     coord_format = [coord_format] * len(coordinates)
-    coordinates = list(map(coord, coordinates, coord_format))
-    dataset = get_dataset(layer)
+    coord_format_op = [epsg] * len(coordinates)
+    coordinates = list(map(coord, coordinates, coord_format, coord_format_op))
 
     def prepare_data_bandwise(band):
         band = dataset.GetRasterBand(band)
@@ -37,21 +52,23 @@ def prepare_data(coord_format, data, bands, layer='http://mobileapp.nesdr.gov.in
 
         data = band.ReadAsArray(0, 0, cols, rows)
 
-        points_list = coordinates
-
         pixels = []
-        for point in points_list:
+        for point in coordinates:
             col = int((point[0] - xOrigin) / pixelWidth)
             row = int((yOrigin - point[1] ) / pixelHeight)
-
-            pixels.append(data[row][col])
+            d = data[row][col]
+            pixels.append(d)
         return np.asarray(pixels)
 
-    band_data = np.reshape(np.asarray(map(prepare_data_bandwise,bands)).T, (len(coordinates), len(bands)))
+    band_data = list(map(prepare_data_bandwise,bands))
+    band_data = np.asarray(band_data).T
+    band_data = np.reshape(band_data, (len(coordinates), len(bands)))
     return band_data, labels
     
-def coord(projWin, coord_sys):
-    transformer = Transformer.from_crs("EPSG:3857", coord_sys)
+def coord(projWin, coord_sys, src_coord_sys="EPSG:3857"):
+    if coord_sys == src_coord_sys:
+        return projWin
+    transformer = Transformer.from_crs(src_coord_sys, coord_sys)
     projWin[1],projWin[0] = transformer.transform(projWin[0], projWin[1])
     if len(projWin) > 2:
         projWin[3],projWin[2] = transformer.transform(projWin[2], projWin[3])

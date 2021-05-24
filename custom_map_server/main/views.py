@@ -81,15 +81,14 @@ def warp_mode2(request):
     projWin = projWin.split(',')
     projWin = list(map(float, projWin))
 
+    regexp = re.compile(".*\&click_hash=\s*([^\n\r'>]*)")
+    clickHash = regexp.search(str(request)).group(1)
+
     coord_sys = "EPSG:4326"
 
-    #glob = {'projWin':projWin, 'coord_sys':coord_sys}
     glob = globals()
-    # glob.update(locals())
-    #print(glob)
-    #print('1',projWin, coord_sys)
     loc_var = f'projWin = {projWin}\ncoord_sys = "{coord_sys}"\n'
-    request = Script(str(request), globals=globals(), projWin=projWin, coord_sys=coord_sys)
+    request = Script(str(request), globals=globals(), projWin=projWin, coord_sys=coord_sys, click_hash=clickHash)
 
     return request.execute
 
@@ -97,20 +96,16 @@ def warp(request):
     return warp_mode2(request)
 
 class Script():
-    def __init__(self, editor, globals, projWin, coord_sys):
+    def __init__(self, editor, globals, projWin, coord_sys, click_hash):
         request = requests.utils.unquote(str(editor))
         regexp = re.compile(".*\&request_script=\s*([^&]*)")
         self.request = regexp.search(str(request)).group(1)
         r = self.request.split('\n')[0]
         r = r[:-1]+f'projWin={projWin}, coord_sys="{coord_sys}")'
         self.request = r + self.request[self.request.find('\n'):]
-        #self.request = vars + self.request
-        #print('-----------------------',self.request)
         self.request = 'from .custom_func import *\n' + self.request
         self.globals = globals
-        #print(self.globals)
-        #print('2',projWin, coord_sys)
-        #print(self.request)
+        self.clickHash = click_hash
     
     @property
     def execute(self):

@@ -4,7 +4,7 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 from django.http import HttpResponse
-from .gdal_translate import coord, norm, apply_cmap, prepare_data
+from .gdal_translate import coord, norm, apply_cmap, prepare_data, dict_hash
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
@@ -44,6 +44,45 @@ response = setup(
 )
 
 d = get_dataset()
+rf = RandomForest(max_depth=2, n_estimators=500)
+colors = dict((
+    (0, (0, 0, 0)),  # Nodata
+    (1, (0, 150, 0)),  # Forest
+    (2, (0, 0, 255)),  # Water
+    (3, (0, 255, 0)),  # Herbaceous
+    (4, (160, 82, 45)),  # Barren
+    (5, (255, 0, 0))  # Urban
+))
+rf.colormap = colors
+data = {
+		'layer':'aa',
+  	'coord_format':'EPSG:4326',
+  	'bands':[2,3,4,5],
+  	'data':[
+      	{'coordinates':[94.939,27.357],'labels':1},
+        {'coordinates':[95.051,27.911],'labels':2},
+        {'coordinates':[94.627,27.839],'labels':1},
+        {'coordinates':[94.844,27.921],'labels':3},
+        {'coordinates':[95.028,27.790],'labels':2},
+        {'coordinates':[95.104,27.672],'labels':2},
+        {'coordinates':[95.014,27.576],'labels':3},
+        {'coordinates':[94.210,27.203],'labels':1},
+        {'coordinates':[94.369,27.552],'labels':1},
+        {'coordinates':[94.036,27.993],'labels':3},
+        {'coordinates':[94.718,27.879],'labels':3},
+        {'coordinates':[94.780,27.627],'labels':1},
+        {'coordinates':[94.490,27.555],'labels':2},
+        {'coordinates':[94.752,27.526],'labels':1},
+        {'coordinates':[95.089,27.065],'labels':2}]
+}
+rf.fit(data)
+response = setup(
+    R=rf.predict(d,[2,3,4,5]).prediction_map,
+    ip_minR=1, ip_maxR=7,
+    cmap=colors
+)
+
+d = get_dataset()
 g = B(dataset=d, band_no=4)
 b = B(dataset=d, band_no=8)
 ndvi = (b-g)/(b+g)
@@ -72,6 +111,7 @@ bounds = np.array([0.0, 5, 10,20, 30, 50, 60, 70,80, 90, 110, 120, 140, 160, 180
 norm_ = colors.BoundaryNorm(bounds, CustomCmap.N)'''
 
 
+
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[10566654.790142765,3169996.4370428305,10605790.548624776,3209132.19552484], coord_sys="EPSG:4326"):
     projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
@@ -84,7 +124,6 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[1056
 
 class B():
     def __init__(self,dataset=None, band_no=0, band=None, ip_minR=0, ip_maxR=2500):
-        #print(band_no, dataset)
         if dataset is None:
             self._band = band
         else:
@@ -142,6 +181,78 @@ class B():
                         break
         return B(band=output)
 
+def rasterPlot(dataset, coordinate, coord_format, bands=None, type='bar'):
+    if bands is None:
+        bands = list(range(dataset.RasterCount))
+    cols = dataset.RasterXSize
+    rows = dataset.RasterYSize
+    coord_format = [coord_format] * len(coordinate)
+    coordinates = coord(coordinate, coord_format)
+
+    def prepare_data_bandwise(band):
+        band = dataset.GetRasterBand(band)
+
+        transform = dataset.GetGeoTransform()
+
+        xOrigin = transform[0]
+        yOrigin = transform[3]
+        pixelWidth = transform[1]
+        pixelHeight = -transform[5]
+
+        data = band.ReadAsArray(0, 0, cols, rows)
+
+        col = int((coordinates[0] - xOrigin) / pixelWidth)
+        row = int((yOrigin - coordinates[1] ) / pixelHeight)
+
+        return data[row][col]
+
+    band_data = np.asarray(map(prepare_data_bandwise,bands))
+    
+    
+
+class RasterPCA(TransformerMixin):
+    def __init__(self, n_components, saved_path=None, **kwargs):
+        if saved_path is not None:
+            self.pca = joblib.load(saved_path)
+        else:
+            self.pca = PCA(n_components=n_components, **kwargs)
+        self.shape = None
+        self.n_bands = 0
+    
+    def dump(self, path):
+        joblib.dump(self.pca, path)
+    
+    def load(self, path):
+        self.pca = joblib.load(path)
+    
+    def fit(self, dataset, bands):
+        self.n_bands = len(bands)
+        self.shape = (dataset.RasterXSize, dataset.RasterYSize)
+        X = []
+        for band in bands:
+            X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
+        self.pca.fit(X)
+    
+    def transform(self, dataset, bands):
+        assert len(bands) == self.n_bands
+        X = []
+        for band in bands:
+            X.append(dataset.GetRasterBand(band).ReadAsArray())
+        X = np.ravel(np.asarray(X))
+        X = self.pca.transform(X)
+        X = X.reshape((self.shape[0],self.shape[1],-1))
+        return X
+    
+    def fit_transform(self, dataset, bands):
+        self.n_bands = len(bands)
+        self.shape = (dataset.RasterXSize, dataset.RasterYSize)
+        print(self.shape,'=============================')
+        X = []
+        for band in bands:
+            X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
+        X = self.pca.fit_transform(X)
+        X = X.reshape((self.shape[0],self.shape[1],-1))
+        return X
 
 class RandomForest(object):
     def __init__(self,saved_path=None,**kwargs):
@@ -158,21 +269,43 @@ class RandomForest(object):
     def load(self, path):
         self.rf = joblib.load(path)
     
-    def fit(self, data):
+    def fit(self, data=None):
         '''
         Format 
         {
             'layer':layer,
             'coord_format':coord_format,
             'bands':bands_list
-            'data':{
-                1:{'coordinates':X,'labels':y},
+            'data':[
+                {'coordinates':X,'labels':y},
                 ...
-            }
+            ]
         }
         '''
+        data = {
+		'layer':'aa',
+        'coord_format':'EPSG:4326',
+        'bands':[2,3,4,5],
+        'data':[
+            {'coordinates':[94.939,27.357],'labels':1},
+            {'coordinates':[95.051,27.911],'labels':2},
+            {'coordinates':[94.627,27.839],'labels':1},
+            {'coordinates':[94.844,27.921],'labels':3},
+            {'coordinates':[95.028,27.790],'labels':2},
+            {'coordinates':[95.104,27.672],'labels':2},
+            {'coordinates':[95.014,27.576],'labels':3},
+            {'coordinates':[94.210,27.203],'labels':1},
+            {'coordinates':[94.369,27.552],'labels':1},
+            {'coordinates':[94.036,27.993],'labels':3},
+            {'coordinates':[94.718,27.879],'labels':3},
+            {'coordinates':[94.780,27.627],'labels':1},
+            {'coordinates':[94.490,27.555],'labels':2},
+            {'coordinates':[94.752,27.526],'labels':1},
+            {'coordinates':[95.089,27.065],'labels':2}]
+        }
+        hash_val = dict_hash(data)
         X, y = prepare_data(
-            layer=data['layer'],coord_format=data['coord_format'],data=data,bands=data['bands']
+            layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
         )
         self.rf.fit(X, y)
     
@@ -182,7 +315,7 @@ class RandomForest(object):
     def predict(self, img, bands, index=[4,3,2], minmax=(0,8000)):
         img = img.ReadAsArray()
         img = np.moveaxis(img, 0, -1)
-        img_as_array = img[:, :, :bands].reshape(-1,bands)
+        img_as_array = np.take(img, bands, 2).reshape(-1,len(bands))
         self.class_prediction = self.rf.predict(img_as_array)
         self.class_prediction = self.class_prediction.reshape(img[:, :, 0].shape)
         
@@ -266,3 +399,37 @@ def setup(
     else:
         grayscale = False
     return to_map(R=R, G=G, B=B, grayscale=grayscale)'''
+
+d = get_dataset()
+rf = RandomForest(max_depth=2, n_estimators=500)
+colors = dict((
+    (0, (0, 0, 0)),  # Nodata
+    (1, (0, 150, 0)),  # Forest
+    (2, (0, 0, 255)),  # Water
+    (3, (0, 255, 0)),  # Herbaceous
+    (4, (160, 82, 45)),  # Barren
+    (5, (255, 0, 0))  # Urban
+))
+rf.colormap = colors
+data = {
+		'layer':'aa',
+  	'coord_format':'EPSG:4326',
+  	'bands':[2,3,4,5],
+  	'data':[
+      	{'coordinates':[94.939,27.357],'labels':1},
+        {'coordinates':[95.051,27.911],'labels':2},
+        {'coordinates':[94.627,27.839],'labels':1},
+        {'coordinates':[94.844,27.921],'labels':3},
+        {'coordinates':[95.028,27.790],'labels':2},
+        {'coordinates':[95.104,27.672],'labels':2},
+        {'coordinates':[95.014,27.576],'labels':3},
+        {'coordinates':[94.210,27.203],'labels':1},
+        {'coordinates':[94.369,27.552],'labels':1},
+        {'coordinates':[94.036,27.993],'labels':3},
+        {'coordinates':[94.718,27.879],'labels':3},
+        {'coordinates':[94.780,27.627],'labels':1},
+        {'coordinates':[94.490,27.555],'labels':2},
+        {'coordinates':[94.752,27.526],'labels':1},
+        {'coordinates':[95.089,27.065],'labels':2}]
+}
+rf.fit(data)
