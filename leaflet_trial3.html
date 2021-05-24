@@ -67,13 +67,15 @@
             var lcontrol = L.control.layers(baseMaps).addTo(map);
 
             document.getElementById("btn").addEventListener("click", function(){
+                let r = Math.random().toString(36).substring(7);
                 setup = myCodeMirror.getValue();
                 if(map.hasLayer(wmsLayer)){
                     map.removeLayer(wmsLayer);
                     lcontrol.removeLayer(wmsLayer)
                 }
                 wmsLayer = L.tileLayer.wms("http://127.0.0.1:8000/wms/", {
-                    request_script: setup
+                    request_script: setup,
+                    click_hash: r
                 }).addTo(map);
                 lcontrol.addOverlay(wmsLayer, "WMS");
             });
