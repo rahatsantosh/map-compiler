@@ -8,9 +8,10 @@ from .gdal_translate import coord, norm, apply_cmap, prepare_data, dict_hash
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
-from sklearn.base import TransformerMixin, ClassifierMixin
+from sklearn.base import TransformerMixin
 
 '''
+django sessions
 Sample script:
 d = get_dataset()
 r1 = B(dataset=d, band_no=3)
@@ -18,7 +19,30 @@ r2 = B(dataset=d, band_no=1)
 r = r1 + r2
 g = B(dataset=d, band_no=4)
 b = B(dataset=d, band_no=8)
-response = setup(r,g,b)
+response = setup(
+  r,g,b,
+  ip_minR=0,ip_maxR=1000,
+  ip_minB=0,ip_maxB=2000,
+  ip_minG=0,ip_maxG=2000,
+)
+
+d = get_dataset()
+r1 = B(dataset=d, band_no=3)
+r2 = B(dataset=d, band_no=1)
+r = r1 + r2
+response = setup(
+  r,
+  ip_minR=0, ip_maxR=2000
+)
+
+d = get_dataset()
+g = B(dataset=d, band_no=4)
+b = B(dataset=d, band_no=8)
+ndvi = (b-g)/(b+g)
+response = setup(
+  ndvi,
+  op_minR=0.5,
+)
 
 d = get_dataset()
 g = B(dataset=d, band_no=4)
@@ -38,7 +62,7 @@ colors = dict((
 ))
 rf.colormap = colors
 response = setup(
-    R=rf.predict(d,7).prediction_map,
+    R=rf.predict(d,[1,2,3,4,5,6,7]).prediction_map,
     ip_minR=1, ip_maxR=7,
     cmap=colors
 )
@@ -103,14 +127,6 @@ srs=EPSG%3A3857&
 bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 '''
 
-'''colorsList = [ (0.1, 0.2, 0.5, 0.0) , 'white', '#CE7E45', '#DF923D','#F1B555','#FCD163', '#99B718', '#74A901', '#66A000', '#529400', '#3E8601', '#207401', '#056201', '#004C00', '#023B01', '#012E01', '#011D01', '#011301']
-CustomCmap = colors.ListedColormap(colorsList)
-CustomCmap.set_over('white')
-CustomCmap.set_under('red')
-bounds = np.array([0.0, 5, 10,20, 30, 50, 60, 70,80, 90, 110, 120, 140, 160, 180, 200, 220, 240, 260, 280 ])
-norm_ = colors.BoundaryNorm(bounds, CustomCmap.N)'''
-
-
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[10566654.790142765,3169996.4370428305,10605790.548624776,3209132.19552484], coord_sys="EPSG:4326"):
     projWin = coord(projWin, coord_sys)
@@ -123,16 +139,17 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[1056
     return out
 
 class B():
-    def __init__(self,dataset=None, band_no=0, band=None, ip_minR=0, ip_maxR=2500):
+    def __init__(self,dataset=None, band_no=0, band=None, min=0, max=2500):
         if dataset is None:
             self._band = band
         else:
-            self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=ip_minR,ip_maxR=ip_maxR)
+            self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=min,ip_maxR=max)
     
     @property
     def band(self):
         return self._band
     
+    #Arithmetic Operations
     def __add__(self,y):
         return B(band=self._band+y.band)
     
@@ -151,6 +168,39 @@ class B():
         else:
             return B(band=self._band/y)
     
+    #Bitwise Operators
+    def __and__(self, y):
+        return B(band=np.bitwise_and(self._band,y))
+    
+    def __or__(self, y):
+        return B(band=np.bitwise_or(self._band,y))
+    
+    def __xor__(self, y):
+        return B(band=np.bitwise_xor(self._band,y))
+    
+    def __invert__(self, y):
+        return B(band=np.invert(self._band,y))
+    
+    #Comparison Operators    
+    def __gt__(self, y):
+        return B(band=np.array(self._band>y))
+    
+    def __ge__(self, y):
+        return B(band=np.array(self._band>=y))
+
+    def __lt__(self, y):
+        return B(band=np.array(self._band<y))
+    
+    def __le__(self, y):
+        return B(band=np.array(self._band<=y))
+    
+    def __eq__(self, y):
+        return B(band=np.array(self._band==y))
+    
+    def __ne__(self, y):
+        return B(band=np.array(self._band!=y))
+    
+    #Convolution Operations    
     def conv2D(self, kernel, padding=0, strides=1):
         image = self.band
         kernel = np.flipud(np.fliplr(kernel))
@@ -374,7 +424,6 @@ def setup(
             ip_minR=ip_minR, ip_maxR=ip_maxR,
             ip_minG=ip_minG, ip_maxG=ip_maxG,
             ip_minB=ip_minB, ip_maxB=ip_maxB))
-    print(im.max(),im.min())
     _, ar = cv2.imencode('.png',im)
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
@@ -400,7 +449,7 @@ def setup(
         grayscale = False
     return to_map(R=R, G=G, B=B, grayscale=grayscale)'''
 
-d = get_dataset()
+'''d = get_dataset()
 rf = RandomForest(max_depth=2, n_estimators=500)
 colors = dict((
     (0, (0, 0, 0)),  # Nodata
@@ -432,4 +481,4 @@ data = {
         {'coordinates':[94.752,27.526],'labels':1},
         {'coordinates':[95.089,27.065],'labels':2}]
 }
-rf.fit(data)
+rf.fit(data)'''
