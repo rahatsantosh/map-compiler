@@ -3,7 +3,7 @@
     <head>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/codemirror.min.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.61.0/theme/monokai.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.61.0/theme/3024-day.min.css" />
 
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/codemirror.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/mode/python/python.min.js"></script>
@@ -15,12 +15,12 @@
                 width: 100%;
             }
             #map {
-                width: 100%;
-                height: 90%;
+                width: 90%;
+                height: 100%;
             }
             .container {
-                width: 100%;
-                height: 10%;
+                width: 10%;
+                height: 100%;
                 border: 1;
                 border-color: black;
             }
@@ -34,8 +34,8 @@
     </head>
     <body>
         <h1>Map Compiler</h1>
-        <div id="map" style="width: 75%; height: 100%; float:left"></div>
-        <div class="container" style="width: 25%; height: 25%; float:left">
+        <div id="map" style="width: 100%; height: 75%; float:left"></div>
+        <div class="container" style="width: 100%; height: 25%; float:left">
          <button class="button" id="btn">Run</button> 
          <div id="codeeditor" style="height: 100%"></div> 
         </div>
@@ -45,7 +45,7 @@
                                         tabSize: 2,
                                         value: 'print("Hello, World")',
                                         mode: 'python',
-                                        theme: 'monokai'
+                                        theme: '3024-day'
                                 });
             var basemap = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoibm92YWNvcnAyMDk5IiwiYSI6ImNrbmpyaGd1NjA0MGcycHBtM2t0Zmw3ZG8ifQ.ZywOp6WnweI53kJdjR7DlQ', {
                     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
