@@ -11,8 +11,6 @@ import json
 def dict_hash(dictionary: Dict[str, Any]) -> str:
     """MD5 hash of a dictionary."""
     dhash = hashlib.md5()
-    # We need to sort arguments so {'a': 1, 'b': 2} is
-    # the same as {'b': 2, 'a': 1}
     encoded = json.dumps(dictionary, sort_keys=True).encode()
     dhash.update(encoded)
     return dhash.hexdigest()
@@ -123,7 +121,7 @@ def norm(
     indices3 = np.where(z==0)
     x = (x-ip_minB)/(ip_maxB-ip_minB)
     y = (x-ip_minG)/(ip_maxG-ip_minG)
-    z = (x-ip_minR)/(ip_maxB-ip_minR)
+    z = (x-ip_minR)/(ip_maxR-ip_minR)
     x = ((op_maxB-op_minB)*x)+op_minB
     y = ((op_maxG-op_minG)*y)+op_minG
     z = ((op_maxR-op_minR)*z)+op_minR
