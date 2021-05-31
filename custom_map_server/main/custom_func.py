@@ -358,12 +358,23 @@ class RandomForest(object):
         }
         hash_val = dict_hash(data)
         modelHashId = self.sess_key + str(hash_val)
+        print(modelHashId)
 
         if Model_cache.objects.filter(sessHash=modelHashId).exists():
             print('Use old weights')
+            i = 0
+            m = True
+            while m:
+                if i%10000==0:
+                    i = 0
+                    m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
+                i += 1
+
             self.load(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
         
         else:
+            Model_cache.objects.create(sessHash=modelHashId,blocked=True)
+            # BLOCKED SECTION
             if not os.path.exists(f'./cache/random_forest/{self.sess_key}'):
                 print('Creating new session folder')
                 os.mkdir(f'./cache/random_forest/{self.sess_key}')
@@ -373,7 +384,9 @@ class RandomForest(object):
             )
             self.rf.fit(X, y)
             self.dump(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
-            Model_cache.objects.create(sessHash=modelHashId)
+            m = Model_cache.objects.get(sessHash=modelHashId)
+            m.blocked = False
+            # END OF BLOCKED SECTION
             
     
     def colormap(self, colors):

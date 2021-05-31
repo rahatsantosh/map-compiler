@@ -67,7 +67,7 @@
             var lcontrol = L.control.layers(baseMaps).addTo(map);
 
             document.getElementById("btn").addEventListener("click", function(){
-                let r = Math.random().toString(36).substring(7);
+                let r = Math.random().toString(36).substring(15);
                 setup = myCodeMirror.getValue();
                 if(map.hasLayer(wmsLayer)){
                     map.removeLayer(wmsLayer);
