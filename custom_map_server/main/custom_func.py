@@ -9,6 +9,8 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 from sklearn.base import TransformerMixin
+import os
+from .models import Model_cache
 
 '''
 django sessions
@@ -305,13 +307,14 @@ class RasterPCA(TransformerMixin):
         return X
 
 class RandomForest(object):
-    def __init__(self,saved_path=None,**kwargs):
+    def __init__(self,sess_key,saved_path=None,**kwargs):
         if saved_path is not None:
             self.rf = joblib.load(saved_path)
         else:
             self.rf = RandomForestClassifier(**kwargs)
         self.colors = ()
         self.class_prediction = None
+        self.sess_key = sess_key
     
     def dump(self, path):
         joblib.dump(self.rf, path)
@@ -354,10 +357,24 @@ class RandomForest(object):
             {'coordinates':[95.089,27.065],'labels':2}]
         }
         hash_val = dict_hash(data)
-        X, y = prepare_data(
-            layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
-        )
-        self.rf.fit(X, y)
+        modelHashId = self.sess_key + str(hash_val)
+
+        if Model_cache.objects.filter(sessHash=modelHashId).exists():
+            print('Use old weights')
+            self.load(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
+        
+        else:
+            if not os.path.exists(f'./cache/random_forest/{self.sess_key}'):
+                print('Creating new session folder')
+                os.mkdir(f'./cache/random_forest/{self.sess_key}')
+            print('Training new model')
+            X, y = prepare_data(
+                layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
+            )
+            self.rf.fit(X, y)
+            self.dump(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
+            Model_cache.objects.create(sessHash=modelHashId)
+            
     
     def colormap(self, colors):
         self.colors = colors

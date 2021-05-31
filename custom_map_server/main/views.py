@@ -5,7 +5,7 @@ from .gdal_translate import *
 from .custom_func import *
 import re
 import requests
-
+from .models import Model_cache
 
 def homepage(request):
     return HttpResponse('hello')
@@ -75,37 +75,43 @@ bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 '''
 
 def warp_mode2(request):
-    global projWin, coord_sys
+    #global projWin, coord_sys
+    regexp = re.compile(".*\&click_hash=\s*([^&\n\r'>]*)")
+    clickHash = regexp.search(str(request)).group(1)
+
+    '''EXISTS_FLAG = True
+    if not Model_cache.objects.filter(sessHash=clickHash).exists():
+        Model_cache.
+        EXISTS_FLAG = False
+    sess_key = [request.session.session_key, EXISTS_FLAG]'''
+
     regexp = re.compile(".*\&bbox=\s*([^\n\r'>]*)")
     projWin = regexp.search(str(request)).group(1)
     projWin = projWin.split(',')
     projWin = list(map(float, projWin))
 
-    regexp = re.compile(".*\&click_hash=\s*([^\n\r'>]*)")
-    clickHash = regexp.search(str(request)).group(1)
+    '''regexp = re.compile(".*\&click_hash=\s*([^\n\r'>]*)")
+    clickHash = regexp.search(str(request)).group(1)'''
 
     coord_sys = "EPSG:4326"
-
-    glob = globals()
-    loc_var = f'projWin = {projWin}\ncoord_sys = "{coord_sys}"\n'
-    request = Script(str(request), globals=globals(), projWin=projWin, coord_sys=coord_sys, click_hash=clickHash)
+    request = Script(str(request), globals=globals(), projWin=projWin, coord_sys=coord_sys,sess_key=clickHash)
 
     return request.execute
+
+#TODO: src and dest srs
 
 def warp(request):
     return warp_mode2(request)
 
 class Script():
-    def __init__(self, editor, globals, projWin, coord_sys, click_hash):
+    def __init__(self, editor, globals, projWin, coord_sys,sess_key):
         request = requests.utils.unquote(str(editor))
         regexp = re.compile(".*\&request_script=\s*([^&]*)")
         self.request = regexp.search(str(request)).group(1)
-        r = self.request.split('\n')[0]
-        r = r[:-1]+f'projWin={projWin}, coord_sys="{coord_sys}")'
-        self.request = r + self.request[self.request.find('\n'):]
+        self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}"',self.request)
         self.request = 'from .custom_func import *\n' + self.request
+        self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.globals = globals
-        self.clickHash = click_hash
     
     @property
     def execute(self):
