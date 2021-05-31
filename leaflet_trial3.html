@@ -3,7 +3,7 @@
     <head>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/codemirror.min.css" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.61.0/theme/3024-day.min.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.61.0/theme/seti.min.css" />
 
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/codemirror.min.js"></script>
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/mode/python/python.min.js"></script>
@@ -45,7 +45,7 @@
                                         tabSize: 2,
                                         value: 'print("Hello, World")',
                                         mode: 'python',
-                                        theme: '3024-day'
+                                        theme: 'seti'
                                 });
             var basemap = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1Ijoibm92YWNvcnAyMDk5IiwiYSI6ImNrbmpyaGd1NjA0MGcycHBtM2t0Zmw3ZG8ifQ.ZywOp6WnweI53kJdjR7DlQ', {
                     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
