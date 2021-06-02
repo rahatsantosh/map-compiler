@@ -1,5 +1,6 @@
 from osgeo import gdal
 import numpy as np
+import time
 from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
@@ -8,7 +9,7 @@ from .gdal_translate import coord, norm, apply_cmap, prepare_data, dict_hash
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
-from sklearn.base import TransformerMixin
+from sklearn.preprocessing import StandardScaler
 import os
 from .models import Model_cache
 
@@ -260,51 +261,90 @@ def rasterPlot(dataset, coordinate, coord_format, bands=None, type='bar'):
 
     band_data = np.asarray(map(prepare_data_bandwise,bands))
     
-    
-
-class RasterPCA(TransformerMixin):
-    def __init__(self, n_components, saved_path=None, **kwargs):
-        if saved_path is not None:
-            self.pca = joblib.load(saved_path)
+class RasterPCA():
+    def __init__(self,n_components,dataset=None,bands=None,selected_bands=None,**kwargs):
+        self.n_components = n_components
+        if dataset is not None:
+            if selected_bands is None:
+                selected_bands = list(range(dataset.RasterCount))
+            self.X = []
+            for band in selected_bands:
+                self.X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
+            self.X = np.asarray(self.X)
         else:
-            self.pca = PCA(n_components=n_components, **kwargs)
-        self.shape = None
-        self.n_bands = 0
+            self.X = []
+            for band in bands:
+                self.X.append(band.band)
+            self.X = np.asarray(self.X)
+        self.shape = self.X.shape
+        self.sc = StandardScaler()
+        self.X = self.sc.fit_transform(self.X)
+        self.X = np.reshape(self.X,(-1,self.X.shape[2]))
+        self.pca = PCA(self.n_components,**kwargs)
     
-    def dump(self, path):
-        joblib.dump(self.pca, path)
+    @property
+    def fit(self):
+        self.pca.fit(self.X)
     
-    def load(self, path):
-        self.pca = joblib.load(path)
+    @property
+    def transform(self):
+        res = np.reshape(self.pca.transform(self.X),(self.shape[0],self.shape[1],self.n_components))
+        if self.n_components == 1:
+            return B(bands=res)
+        b = []
+        for r in res:
+            b.append(B(bands=r))
+
+    @property
+    def fit_transform(self):
+        return np.reshape(self.pca.fit_transform(self.X),(self.shape[0],self.shape[1],self.n_components))
+
+
+
+
+# class RasterPCA(TransformerMixin):
+#     def __init__(self, n_components, saved_path=None, **kwargs):
+#         if saved_path is not None:
+#             self.pca = joblib.load(saved_path)
+#         else:
+#             self.pca = PCA(n_components=n_components, **kwargs)
+#         self.shape = None
+#         self.n_bands = 0
     
-    def fit(self, dataset, bands):
-        self.n_bands = len(bands)
-        self.shape = (dataset.RasterXSize, dataset.RasterYSize)
-        X = []
-        for band in bands:
-            X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
-        self.pca.fit(X)
+#     def dump(self, path):
+#         joblib.dump(self.pca, path)
     
-    def transform(self, dataset, bands):
-        assert len(bands) == self.n_bands
-        X = []
-        for band in bands:
-            X.append(dataset.GetRasterBand(band).ReadAsArray())
-        X = np.ravel(np.asarray(X))
-        X = self.pca.transform(X)
-        X = X.reshape((self.shape[0],self.shape[1],-1))
-        return X
+#     def load(self, path):
+#         self.pca = joblib.load(path)
     
-    def fit_transform(self, dataset, bands):
-        self.n_bands = len(bands)
-        self.shape = (dataset.RasterXSize, dataset.RasterYSize)
-        print(self.shape,'=============================')
-        X = []
-        for band in bands:
-            X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
-        X = self.pca.fit_transform(X)
-        X = X.reshape((self.shape[0],self.shape[1],-1))
-        return X
+#     def fit(self, dataset, bands):
+#         self.n_bands = len(bands)
+#         self.shape = (dataset.RasterXSize, dataset.RasterYSize)
+#         X = []
+#         for band in bands:
+#             X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
+#         self.pca.fit(X)
+    
+#     def transform(self, dataset, bands):
+#         assert len(bands) == self.n_bands
+#         X = []
+#         for band in bands:
+#             X.append(dataset.GetRasterBand(band).ReadAsArray())
+#         X = np.ravel(np.asarray(X))
+#         X = self.pca.transform(X)
+#         X = X.reshape((self.shape[0],self.shape[1],-1))
+#         return X
+    
+#     def fit_transform(self, dataset, bands):
+#         self.n_bands = len(bands)
+#         self.shape = (dataset.RasterXSize, dataset.RasterYSize)
+#         print(self.shape,'=============================')
+#         X = []
+#         for band in bands:
+#             X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
+#         X = self.pca.fit_transform(X)
+#         X = X.reshape((self.shape[0],self.shape[1],-1))
+#         return X
 
 class RandomForest(object):
     def __init__(self,sess_key,saved_path=None,**kwargs):
@@ -322,7 +362,7 @@ class RandomForest(object):
     def load(self, path):
         self.rf = joblib.load(path)
     
-    def fit(self, data=None):
+    def fit(self, data):
         '''
         Format 
         {
@@ -335,7 +375,7 @@ class RandomForest(object):
             ]
         }
         '''
-        data = {
+        '''data = {
 		'layer':'aa',
         'coord_format':'EPSG:4326',
         'bands':[2,3,4,5],
@@ -355,12 +395,13 @@ class RandomForest(object):
             {'coordinates':[94.490,27.555],'labels':2},
             {'coordinates':[94.752,27.526],'labels':1},
             {'coordinates':[95.089,27.065],'labels':2}]
-        }
+        }'''
         hash_val = dict_hash(data)
         modelHashId = self.sess_key + str(hash_val)
         print(modelHashId)
 
         if Model_cache.objects.filter(sessHash=modelHashId).exists():
+            time.sleep(15)
             print('Use old weights')
             i = 0
             m = True
@@ -373,20 +414,40 @@ class RandomForest(object):
             self.load(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
         
         else:
-            Model_cache.objects.create(sessHash=modelHashId,blocked=True)
-            # BLOCKED SECTION
-            if not os.path.exists(f'./cache/random_forest/{self.sess_key}'):
-                print('Creating new session folder')
-                os.mkdir(f'./cache/random_forest/{self.sess_key}')
-            print('Training new model')
-            X, y = prepare_data(
-                layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
-            )
-            self.rf.fit(X, y)
-            self.dump(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
-            m = Model_cache.objects.get(sessHash=modelHashId)
-            m.blocked = False
-            # END OF BLOCKED SECTION
+            try:
+                Model_cache.objects.create(sessHash=modelHashId,blocked=True)
+                t = time.time()
+                # BLOCKED SECTION
+                if not os.path.exists(f'./cache/random_forest/{self.sess_key}'):
+                    print('Creating new session folder')
+                    os.mkdir(f'./cache/random_forest/{self.sess_key}')
+                print('Training new model')
+                X, y = prepare_data(
+                    layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
+                )
+                print(f'Training starts in {time.time()-t}')
+                t = time.time()
+                print('Training Start')
+                self.rf.fit(X, y)
+                print('Training End')
+                print(f'Training takes place in {time.time()-t}')
+                self.dump(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
+                m = Model_cache.objects.get(sessHash=modelHashId)
+                m.blocked = False
+                m.save()
+                #print('============',Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0])
+                # END OF BLOCKED SECTION
+            except:
+                print('Use old weights')
+                i = 0
+                m = True
+                while m:
+                    if i%10000==0:
+                        i = 0
+                        m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
+                    i += 1
+
+                self.load(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
             
     
     def colormap(self, colors):
