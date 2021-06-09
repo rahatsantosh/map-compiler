@@ -19,7 +19,6 @@ from . import views
 app_name = "main"
 
 urlpatterns = [
-    path("home",views.homepage, name="homepage"),
-    path("wms/",views.warp, name="warp"),
-    #path("editor/",views.editor, name="editor"),
+    path("wms/",views.maprequest, name="map"),
+    path("std/",views.nonmaprequest, name="non-map")
 ]

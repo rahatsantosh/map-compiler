@@ -131,15 +131,21 @@ bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 '''
 
 
-def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=[10566654.790142765,3169996.4370428305,10605790.548624776,3209132.19552484], coord_sys="EPSG:4326"):
+def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326"):
     projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
         #'/vsicurl/'+layer,
         './main/out2019.tif',
         gdal.GA_ReadOnly
         )
-    out = gdal.Warp('', dataset, width=256, height=256, outputBounds=projWin, format='MEM')
-    return out
+    if projWin is None:
+        return gdal.Warp(
+            '', dataset, width=256, height=256, format='MEM'
+        )
+    else:
+        return gdal.Warp(
+            '', dataset, width=256, height=256, outputBounds=projWin, format='MEM'
+        )
 
 class B():
     def __init__(self,dataset=None, band_no=0, band=None, min=0, max=2500):
@@ -217,7 +223,6 @@ class B():
         if padding != 0:
             imagePadded = np.zeros((image.shape[0] + padding*2, image.shape[1] + padding*2))
             imagePadded[int(padding):int(-1 * padding), int(padding):int(-1 * padding)] = image
-            print(imagePadded)
         else:
             imagePadded = image
         for y in range(image.shape[1]):
@@ -398,11 +403,9 @@ class RandomForest(object):
         }'''
         hash_val = dict_hash(data)
         modelHashId = self.sess_key + str(hash_val)
-        print(modelHashId)
 
         if Model_cache.objects.filter(sessHash=modelHashId).exists():
             time.sleep(15)
-            print('Use old weights')
             i = 0
             m = True
             while m:
@@ -419,18 +422,12 @@ class RandomForest(object):
                 t = time.time()
                 # BLOCKED SECTION
                 if not os.path.exists(f'./cache/random_forest/{self.sess_key}'):
-                    print('Creating new session folder')
                     os.mkdir(f'./cache/random_forest/{self.sess_key}')
-                print('Training new model')
                 X, y = prepare_data(
                     layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
                 )
-                print(f'Training starts in {time.time()-t}')
                 t = time.time()
-                print('Training Start')
                 self.rf.fit(X, y)
-                print('Training End')
-                print(f'Training takes place in {time.time()-t}')
                 self.dump(path=f'./cache/random_forest/{self.sess_key}/{hash_val}.joblib')
                 m = Model_cache.objects.get(sessHash=modelHashId)
                 m.blocked = False
@@ -438,7 +435,6 @@ class RandomForest(object):
                 #print('============',Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0])
                 # END OF BLOCKED SECTION
             except:
-                print('Use old weights')
                 i = 0
                 m = True
                 while m:
@@ -465,7 +461,6 @@ class RandomForest(object):
     @property
     def prediction_map(self):
         n = self.class_prediction.max()
-        print(self.colors)
         for k in self.colors:
             v = self.colors[k]
             _v = [_v / 255.0 for _v in v]
@@ -505,7 +500,7 @@ def setup(
         if cmap is not None and cmap_order==0:
             im = apply_cmap(im, cmap)
     else:
-        im = np.dstack(norm(
+        x,y,z = norm(
             x=weight[0]*R.band, 
             y=weight[1]*G.band, 
             z=weight[2]*B.band,
@@ -514,7 +509,8 @@ def setup(
             op_minB=op_minB, op_maxB=op_maxB,
             ip_minR=ip_minR, ip_maxR=ip_maxR,
             ip_minG=ip_minG, ip_maxG=ip_maxG,
-            ip_minB=ip_minB, ip_maxB=ip_maxB))
+            ip_minB=ip_minB, ip_maxB=ip_maxB)
+        im = np.dstack((R.band,G.band,B.band)) 
     _, ar = cv2.imencode('.png',im)
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
@@ -539,37 +535,3 @@ def setup(
     else:
         grayscale = False
     return to_map(R=R, G=G, B=B, grayscale=grayscale)'''
-
-'''d = get_dataset()
-rf = RandomForest(max_depth=2, n_estimators=500)
-colors = dict((
-    (0, (0, 0, 0)),  # Nodata
-    (1, (0, 150, 0)),  # Forest
-    (2, (0, 0, 255)),  # Water
-    (3, (0, 255, 0)),  # Herbaceous
-    (4, (160, 82, 45)),  # Barren
-    (5, (255, 0, 0))  # Urban
-))
-rf.colormap = colors
-data = {
-		'layer':'aa',
-  	'coord_format':'EPSG:4326',
-  	'bands':[2,3,4,5],
-  	'data':[
-      	{'coordinates':[94.939,27.357],'labels':1},
-        {'coordinates':[95.051,27.911],'labels':2},
-        {'coordinates':[94.627,27.839],'labels':1},
-        {'coordinates':[94.844,27.921],'labels':3},
-        {'coordinates':[95.028,27.790],'labels':2},
-        {'coordinates':[95.104,27.672],'labels':2},
-        {'coordinates':[95.014,27.576],'labels':3},
-        {'coordinates':[94.210,27.203],'labels':1},
-        {'coordinates':[94.369,27.552],'labels':1},
-        {'coordinates':[94.036,27.993],'labels':3},
-        {'coordinates':[94.718,27.879],'labels':3},
-        {'coordinates':[94.780,27.627],'labels':1},
-        {'coordinates':[94.490,27.555],'labels':2},
-        {'coordinates':[94.752,27.526],'labels':1},
-        {'coordinates':[95.089,27.065],'labels':2}]
-}
-rf.fit(data)'''

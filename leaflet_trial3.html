@@ -34,10 +34,13 @@
     </head>
     <body>
         <h1>Map Compiler</h1>
-        <div id="map" style="width: 100%; height: 75%; float:left"></div>
+        <div id="map" style="width: 75%; height: 75%; float:left"></div>
         <div class="container" style="width: 100%; height: 25%; float:left">
          <button class="button" id="btn">Run</button> 
          <div id="codeeditor" style="height: 100%"></div> 
+        </div>
+        <div class="container" style="width: 23%; height: 74%; display:inline-block;"> 
+            <p id="console" style="height: 100%">>></p> 
         </div>
         <script>
             var myCodeMirror = CodeMirror(document.getElementById('codeeditor'), {
@@ -67,8 +70,35 @@
             var lcontrol = L.control.layers(baseMaps).addTo(map);
 
             document.getElementById("btn").addEventListener("click", function(){
-                let r = Math.random().toString(36).substring(15);
+                let r = Date.now();
                 setup = myCodeMirror.getValue();
+
+                is_console = setup.includes('print') && !setup.includes('#print')
+                is_tiled = (setup.includes('response') && setup.includes('setup(')) && !setup.includes('#response')
+                is_graph = setup.includes('rasterPlot') && !setup.includes('rasterPlot')
+                if (is_tiled)
+                    wmsAdd(setup,r)
+                if (is_console)
+                    console_request(setup,r)
+                // if (check_print)
+                // if(map.hasLayer(wmsLayer)){
+                //     map.removeLayer(wmsLayer);
+                //     lcontrol.removeLayer(wmsLayer)
+                // }
+                // //wmsLayer
+                // //2 run functions
+                // //state mgmt frontend
+                // response = L.tileLayer.wms("http://127.0.0.1:8000/wms/", {
+                //     request_script: setup,
+                //     click_hash: r
+                // });
+                // console.log(response)
+                // wmsLayer = response['wms'];
+                // document.getElementById('console').innerHTML = response['console']
+                // lcontrol.addOverlay(wmsLayer, "WMS");
+            });
+
+            function wmsAdd(setup,r){
                 if(map.hasLayer(wmsLayer)){
                     map.removeLayer(wmsLayer);
                     lcontrol.removeLayer(wmsLayer)
@@ -78,7 +108,17 @@
                     click_hash: r
                 }).addTo(map);
                 lcontrol.addOverlay(wmsLayer, "WMS");
-            });
+            }
+
+            function console_request(setup,r){
+                let apiRequest = new XMLHttpRequest();
+                url = "http://127.0.0.1:8000/std/?&click_hash="+r+"&request_script="+setup;
+                apiRequest.open("GET",url);
+                apiRequest.send();
+                var response = JSON.parse(apiRequest.responseText);
+                var console = response.console.replaceAll('\n','\n>>>')
+                document.getElementById('console').innerHTML = console;
+            }
         </script>
     </body>
 </html>

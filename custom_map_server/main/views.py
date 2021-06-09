@@ -5,10 +5,9 @@ from .gdal_translate import *
 from .custom_func import *
 import re
 import requests
-from .models import Model_cache
-
-def homepage(request):
-    return HttpResponse('hello')
+import json
+from io import StringIO
+from contextlib import redirect_stdout
 
 '''
 Sample url request:
@@ -24,42 +23,6 @@ width=256&height=256&srs=EPSG%3A3857&
 bbox=10488383.273178745,3169996.4370428305,10527519.031660756,3209132.19552484
 '''
 
-def warp_mode1(request):
-    request = requests.utils.unquote(str(request))
-
-    regexp = re.compile(".*\&bbox=\s*([^\n\r'>]*)")
-    projWin = regexp.search(str(request)).group(1)
-    projWin = projWin.split(',')
-    projWin = list(map(float, projWin))
-
-    regexp = re.compile(".*\&input_band=\s*([^\n\r&'>]*)")
-    input_band = regexp.search(str(request)).group(1)
-    input_band = input_band.split(',')
-
-    regexp = re.compile(".*\&min_threshold=\s*([^\n\r&'>]*)")
-    min_threshold = regexp.search(str(request)).group(1)
-    min_threshold = min_threshold.split(',')
-    min_threshold = list(map(float, min_threshold))
-
-    regexp = re.compile(".*\&max_threshold=\s*([^\n\r&'>]*)")
-    max_threshold = regexp.search(str(request)).group(1)
-    max_threshold = max_threshold.split(',')
-    max_threshold = list(map(float, max_threshold))
-
-    regexp = re.compile(".*\&weight=\s*([^\n\r&'>]*)")
-    weight = regexp.search(str(request)).group(1)
-    weight = weight.split(',')
-    weight = list(map(float, weight))
-
-    return get_translate(
-        projWin,
-        input_band,
-        weight,
-        minR=min_threshold[0], maxR=max_threshold[0],
-        minG=min_threshold[1], maxG=max_threshold[1],
-        minB=min_threshold[2], maxB=max_threshold[2]
-    )
-
 '''
 Sample url script:
 http://127.0.0.1:8000/wms/?service=WMS&
@@ -74,47 +37,55 @@ srs=EPSG%3A3857&
 bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 '''
 
-def warp_mode2(request):
-    #global projWin, coord_sys
+def nonmaprequest(request):
     regexp = re.compile(".*\&click_hash=\s*([^&\n\r'>]*)")
     clickHash = regexp.search(str(request)).group(1)
 
-    '''EXISTS_FLAG = True
-    if not Model_cache.objects.filter(sessHash=clickHash).exists():
-        Model_cache.
-        EXISTS_FLAG = False
-    sess_key = [request.session.session_key, EXISTS_FLAG]'''
+    coord_sys = "EPSG:4326"
+    request = Script(str(request), globals=globals(), coord_sys=coord_sys,sess_key=clickHash)
+    request.execute(ret=False)
+    
+    console_op = request.op.getvalue()
+    response = {
+        "console":console_op
+    }
+    return HttpResponse(json.dumps(response), content_type="application/json")
+
+
+
+def maprequest(request):
+    regexp = re.compile(".*\&click_hash=\s*([^&\n\r'>]*)")
+    clickHash = regexp.search(str(request)).group(1)
 
     regexp = re.compile(".*\&bbox=\s*([^\n\r'>]*)")
     projWin = regexp.search(str(request)).group(1)
     projWin = projWin.split(',')
     projWin = list(map(float, projWin))
 
-    '''regexp = re.compile(".*\&click_hash=\s*([^\n\r'>]*)")
-    clickHash = regexp.search(str(request)).group(1)'''
-
     coord_sys = "EPSG:4326"
     request = Script(str(request), globals=globals(), projWin=projWin, coord_sys=coord_sys,sess_key=clickHash)
 
-    return request.execute
+    return request.execute(ret=True)
 
 #TODO: src and dest srs
 
-def warp(request):
-    return warp_mode2(request)
-
 class Script():
-    def __init__(self, editor, globals, projWin, coord_sys,sess_key):
+    def __init__(self, editor, globals, coord_sys, sess_key, projWin=None):
         request = requests.utils.unquote(str(editor))
         regexp = re.compile(".*\&request_script=\s*([^&]*)")
         self.request = regexp.search(str(request)).group(1)
-        self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}"',self.request)
+        if projWin is None:
+            self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}"',self.request)
+        else:
+            self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}"',self.request)
         self.request = 'from .custom_func import *\n' + self.request
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.globals = globals
+        self.op = StringIO()
     
-    @property
-    def execute(self):
+    def execute(self, ret):
         _locals = {}
-        exec(self.request, self.globals, _locals)
-        return _locals['response']
+        with redirect_stdout(self.op):
+            exec(self.request, self.globals, _locals)
+        if ret:
+            return _locals['response']
