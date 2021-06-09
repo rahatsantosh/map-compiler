@@ -42,7 +42,6 @@ def nonmaprequest(request):
     clickHash = regexp.search(str(request)).group(1)
 
     coord_sys = "EPSG:4326"
-    print(request)
     request = Script(str(request), globals=globals(), coord_sys=coord_sys,sess_key=clickHash)
     request.execute(ret=False)
     
@@ -83,7 +82,6 @@ class Script():
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.globals = globals
         self.op = StringIO()
-        print('==========',self.request)
     
     def execute(self, ret):
         _locals = {}
