@@ -132,7 +132,8 @@ bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326"):
-    projWin = coord(projWin, coord_sys)
+    if projWin is not None:
+        projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
         #'/vsicurl/'+layer,
         './main/out2019.tif',
