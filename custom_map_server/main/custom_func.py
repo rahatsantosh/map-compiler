@@ -1,4 +1,4 @@
-from osgeo import gdal
+from osgeo import gdal, osr
 import numpy as np
 import time
 from PIL import Image
@@ -131,7 +131,7 @@ bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
 '''
 
 
-def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326"):
+def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326",resample=True):
     if projWin is not None:
         projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
@@ -139,10 +139,12 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None,
         './main/out2019.tif',
         gdal.GA_ReadOnly
         )
-    if projWin is None:
+    if projWin is None and resample:
         return gdal.Warp(
             '', dataset, width=256, height=256, format='MEM'
         )
+    elif projWin is None:
+        return dataset
     else:
         return gdal.Warp(
             '', dataset, width=256, height=256, outputBounds=projWin, format='MEM'
@@ -240,32 +242,42 @@ class B():
                         break
         return B(band=output)
 
-def rasterPlot(dataset, coordinate, coord_format, bands=None, type='bar'):
+def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
     if bands is None:
-        bands = list(range(dataset.RasterCount))
+        bands = list(range(1,dataset.RasterCount+1))
     cols = dataset.RasterXSize
     rows = dataset.RasterYSize
-    coord_format = [coord_format] * len(coordinate)
-    coordinates = coord(coordinate, coord_format)
+    proj = osr.SpatialReference(wkt=dataset.GetProjection())
+    epsg = "EPSG:"+str(proj.GetAttrValue('AUTHORITY',1))
+    coordinates = coord(coordinate, coord_sys=epsg, src_coord_sys=coord_format)
+
+    transform = dataset.GetGeoTransform()
+
+    xOrigin = transform[0]
+    yOrigin = transform[3]
+    pixelWidth = transform[1]
+    pixelHeight = -transform[5]
+    col = int((coordinates[0] - xOrigin) / pixelWidth)
+    row = int((yOrigin - coordinates[1] ) / pixelHeight)
 
     def prepare_data_bandwise(band):
         band = dataset.GetRasterBand(band)
-
-        transform = dataset.GetGeoTransform()
-
-        xOrigin = transform[0]
-        yOrigin = transform[3]
-        pixelWidth = transform[1]
-        pixelHeight = -transform[5]
-
-        data = band.ReadAsArray(0, 0, cols, rows)
-
-        col = int((coordinates[0] - xOrigin) / pixelWidth)
-        row = int((yOrigin - coordinates[1] ) / pixelHeight)
-
+        data = band.ReadAsArray(0, 0, cols, rows).tolist()
         return data[row][col]
 
-    band_data = np.asarray(map(prepare_data_bandwise,bands))
+    band_data = list(map(prepare_data_bandwise,bands))
+    labels = bands
+    graph = {
+        'type':style,
+        'data':{
+            'labels':labels,
+            'datasets':[{
+                'data':band_data
+            }]
+        }
+    }
+
+    return graph
     
 class RasterPCA():
     def __init__(self,n_components,dataset=None,bands=None,selected_bands=None,**kwargs):

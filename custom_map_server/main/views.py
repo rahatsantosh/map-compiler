@@ -43,11 +43,11 @@ def nonmaprequest(request):
 
     coord_sys = "EPSG:4326"
     request = Script(str(request), globals=globals(), coord_sys=coord_sys,sess_key=clickHash)
-    request.execute(ret=False)
+    request.execute
     
-    console_op = request.op.getvalue()
     response = {
-        "console":console_op
+        "console":request.console,
+        "graph":request.graph
     }
     return HttpResponse(json.dumps(response), content_type="application/json")
 
@@ -65,7 +65,9 @@ def maprequest(request):
     coord_sys = "EPSG:4326"
     request = Script(str(request), globals=globals(), projWin=projWin, coord_sys=coord_sys,sess_key=clickHash)
 
-    return request.execute(ret=True)
+    request.execute
+
+    return request.map
 
 #TODO: src and dest srs
 
@@ -75,17 +77,34 @@ class Script():
         regexp = re.compile(".*\&request_script=\s*([^&]*)")
         self.request = regexp.search(str(request)).group(1)
         if projWin is None:
-            self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}"',self.request)
+            self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}",',self.request)
         else:
-            self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}"',self.request)
+            self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}",',self.request)
         self.request = 'from .custom_func import *\n' + self.request
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.globals = globals
-        self.op = StringIO()
+        self.console = None
+        self.map = None
+        self.graph = None
     
-    def execute(self, ret):
+    @property
+    def execute(self):
         _locals = {}
-        with redirect_stdout(self.op):
-            exec(self.request, self.globals, _locals)
-        if ret:
-            return _locals['response']
+        op = StringIO()
+        #with redirect_stdout(op):
+        exec(self.request, self.globals, _locals)
+
+        try:
+            self.console = op.getvalue()
+        except:
+            self.console = None
+
+        try:
+            self.map = _locals['response']
+        except:
+            self.map = None
+
+        try:
+            self.graph = _locals['graph']
+        except:
+            self.graph = None

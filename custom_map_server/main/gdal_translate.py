@@ -16,12 +16,11 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     return dhash.hexdigest()
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
-    dataset = gdal.Open(
+    return gdal.Open(
         #'/vsicurl/'+layer,
         './main/out2019.tif',
         gdal.GA_ReadOnly
         )
-    return dataset
 
 def prepare_data(coord_format, data, bands, layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
     coordinates = []
@@ -73,10 +72,7 @@ def coord(projWin, coord_sys, src_coord_sys="EPSG:3857"):
     return projWin
 
 def to_map(R, G=None, B=None, A=None, include_alpha=False, grayscale=False):
-    if grayscale:
-        im = R
-    else:
-        im = np.dstack([R, G, B])
+    im = R if grayscale else np.dstack([R, G, B])
     im = im.astype(np.uint8) * 255
     if include_alpha and A is None:
         alpha = (np.mean(im, axis=2)+1) * 2
