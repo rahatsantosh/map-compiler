@@ -72,7 +72,7 @@
             document.getElementById("btn").addEventListener("click", function(){
                 let r = Date.now();
                 setup = myCodeMirror.getValue();
-                console.log(setup)
+                setup = setup.replaceAll(/#[^\n\r]*[\n]/g,"")
 
                 is_console = setup.includes('print') && !setup.includes('#print')
                 is_tiled = (setup.includes('response') && setup.includes('setup(')) && !setup.includes('#response')
@@ -113,13 +113,15 @@
 
             function console_request(setup,r){
                 let apiRequest = new XMLHttpRequest();
+                apiRequest.responseType = 'json';
                 url = "http://127.0.0.1:8000/std/?click_hash="+r+"&request_script="+encodeURI(setup)+"&";
-                console.log(url)
-                apiRequest.open("GET",url);
+                apiRequest.open("GET",url,true);
+                apiRequest.onload  = function() {
+                    var jsonResponse = apiRequest.response;
+                    //var console_response = jsonResponse.console.replaceAll('\n','\n>>>')
+                    document.getElementById('console').innerHTML = jsonResponse.console;//console_response;
+                };
                 apiRequest.send();
-                var response = JSON.parse(apiRequest.responseText);
-                var console_response = response.console.replaceAll('\n','\n>>>')
-                document.getElementById('console').innerHTML = console_response;
             }
         </script>
     </body>
