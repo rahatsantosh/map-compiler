@@ -1,0 +1,1 @@
+RANDOM_FOREST_CACHE = "./cache/random_forest"
