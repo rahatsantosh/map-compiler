@@ -16,6 +16,26 @@ from .models import Model_cache
 '''
 django sessions
 Sample script:
+
+d = get_dataset(resample=False)
+g = B(dataset=d, band_no=4)
+b = B(dataset=d, band_no=8)
+ndvi = (b-g)/(b+g)
+#response = setup(ndvi)
+#print(ndvi.band)
+graph = rasterPlot(d,[94.589,27.523],'EPSG:4326')
+
+d = get_dataset()
+r = B(dataset=d, band_no=3)
+g = B(dataset=d, band_no=4)
+b = B(dataset=d, band_no=8)
+response = setup(
+  r,g,b,
+  ip_minR=0,ip_maxR=12252,
+  ip_minB=0,ip_maxB=12211,
+  ip_minG=0,ip_maxG=12536,
+)
+
 d = get_dataset()
 r1 = B(dataset=d, band_no=3)
 r2 = B(dataset=d, band_no=1)
