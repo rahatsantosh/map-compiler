@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import os
-from .models import Model_cache
+from ..models import Model_cache
 
 '''
 django sessions

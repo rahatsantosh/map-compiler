@@ -76,7 +76,7 @@ class Script():
             self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}",',self.request)
         else:
             self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}",',self.request)
-        self.request = 'from .user_func import *\n' + self.request
+        self.request = 'from .compiler_scripts.user_func import *\n' + self.request
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.globals = globals
         self.console = None
