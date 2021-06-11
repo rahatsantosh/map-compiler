@@ -5,7 +5,7 @@ from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 from django.http import HttpResponse
-from .gdal_translate import coord, norm, apply_cmap, prepare_data, dict_hash
+from .helpers import coord, norm, apply_cmap, prepare_data, dict_hash
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
