@@ -86,13 +86,14 @@ class Script():
         self.console = None
         self.map = None
         self.graph = None
+        #self.request = self.request[:-1]
     
     @property
     def execute(self):
         _locals = {}
         op = StringIO()
-        #with redirect_stdout(op):
-        exec(self.request, self.globals, _locals)
+        with redirect_stdout(op):
+            exec(self.request, self.globals, _locals)
 
         try:
             self.console = op.getvalue()

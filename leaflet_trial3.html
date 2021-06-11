@@ -124,7 +124,7 @@
                 apiRequest.responseType = 'json';
                 url = "http://127.0.0.1:8000/std/?click_hash="+r+"&request_script="+encodeURI(setup)+"&";
                 apiRequest.open("GET",url,true);
-                console.log('A');
+                console.log(url)
                 apiRequest.onload  = function() {
                     var jsonResponse = apiRequest.response;
                     map_responses(jsonResponse);
