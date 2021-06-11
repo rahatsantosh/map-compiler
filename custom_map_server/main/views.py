@@ -1,8 +1,4 @@
-from django.shortcuts import render
-from django.http import HttpResponse, FileResponse
-from django.shortcuts import render
-from .gdal_translate import *
-from .user_func import *
+from django.http import HttpResponse
 import re
 import requests
 import json
@@ -80,7 +76,7 @@ class Script():
             self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}",',self.request)
         else:
             self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}",',self.request)
-        self.request = 'from .custom_func import *\n' + self.request
+        self.request = 'from .user_func import *\n' + self.request
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.globals = globals
         self.console = None
