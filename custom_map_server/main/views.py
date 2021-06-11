@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse, FileResponse
 from django.shortcuts import render
 from .gdal_translate import *
-from .custom_func import *
+from .user_func import *
 import re
 import requests
 import json
