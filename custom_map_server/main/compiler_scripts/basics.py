@@ -34,6 +34,9 @@ class B():
     def band(self):
         return self._band
     
+    def __repr__(self):
+        return self._band
+    
     #Arithmetic Operations
     def __add__(self,y):
         return B(band=self._band+y.band)
