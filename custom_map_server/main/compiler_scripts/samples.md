@@ -9,6 +9,15 @@ ndvi = (b-g)/(b+g)
 graph = rasterPlot(d,[94.589,27.523],'EPSG:4326')
 
 d = get_dataset()
+pca = RasterPCA(n_components = 1)
+data = {
+  'layer':'aa',
+  'bands':[2,3,4,5,6,7]
+}
+pca.fit(data)
+response = setup(R=pca.transform(dataset=d,n_bands=[2,3,4,5,6,7]))
+
+d = get_dataset()
 r = B(dataset=d, band_no=3)
 g = B(dataset=d, band_no=4)
 b = B(dataset=d, band_no=8)
