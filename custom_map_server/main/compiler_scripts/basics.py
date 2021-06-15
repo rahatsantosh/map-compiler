@@ -40,6 +40,19 @@ class B():
     def __getitem__(self, index):
         return self.band[index]
     
+    #Statistical Ops
+    def mean(self):
+        return np.mean(self._band)
+    
+    def max(self):
+        return np.max(self._band)
+    
+    def min(self):
+        return np.min(self._band)
+    
+    def std(self):
+        return np.std(self._band)
+    
     #Arithmetic Operations
     def __add__(self,y):
         return B(band=self._band+y.band)
