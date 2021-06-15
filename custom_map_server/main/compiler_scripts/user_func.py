@@ -1,5 +1,5 @@
 '''
-Front End, User Accessible Functions
+Front End, User Accessible Wrapper Functions
 '''
 from osgeo import osr
 import numpy as np
