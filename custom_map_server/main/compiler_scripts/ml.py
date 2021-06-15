@@ -7,97 +7,99 @@ import os
 from ..models import Model_cache
 from .helpers import prepare_data, dict_hash
 import time
-from .basics import B
+from .basics import B, get_dataset
 from .storage_paths import *
 
+
 class RasterPCA():
-    def __init__(self,n_components,dataset=None,bands=None,selected_bands=None,**kwargs):
-        self.n_components = n_components
-        if dataset is not None:
-            if selected_bands is None:
-                selected_bands = list(range(dataset.RasterCount))
-            self.X = []
-            for band in selected_bands:
-                self.X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
+    def __init__(self,sess_key,saved_path=None,**kwargs):
+        self.pca = joblib.load(saved_path) if saved_path is not None else PCA(**kwargs)
+        self.sess_key = sess_key
+    
+    def dump(self, path):
+        joblib.dump(self.pca, path)
+    
+    def load(self, path):
+        self.pca = joblib.load(path)
+    
+    def __prepare_train_data(self,data):
+        d = get_dataset(layer = data['layer'])
+        return np.array(
+            [d.GetRasterBand(i).ReadAsArray().ravel() for i in data['bands']]
+        ).T
+    
+    def __prepare_infer_data(self,dataset=None,n_bands=None,bands=None):
+        if dataset is None and bands is not None:
+            X = np.asarray([band.band.ravel() for band in bands]).T
+        elif bands is None and dataset is not None:
+            X = np.array([dataset.GetRasterBand(i).ReadAsArray().ravel() for i in n_bands]).T
         else:
-            self.X = []
-            for band in bands:
-                self.X.append(band.band)
-        self.X = np.asarray(self.X)
-        self.shape = self.X.shape
-        self.sc = StandardScaler()
-        self.X = self.sc.fit_transform(self.X)
-        self.X = np.reshape(self.X,(-1,self.X.shape[2]))
-        self.pca = PCA(self.n_components,**kwargs)
+            exit(0)
+        return X
     
-    @property
-    def fit(self):
-        self.pca.fit(self.X)
-    
-    @property
-    def transform(self):
-        res = np.reshape(self.pca.transform(self.X),(self.shape[0],self.shape[1],self.n_components))
-        if self.n_components == 1:
-            return B(bands=res)
-        b = [B(bands=r) for r in res]
+    def fit(self, data):
+        '''
+        data: dict
+        {
+        'layer':layer,
+        'bands':bands_list
+        }
+        '''
+        hash_val = dict_hash(data)
+        modelHashId = self.sess_key + str(hash_val)
 
-    @property
-    def fit_transform(self):
-        return np.reshape(self.pca.fit_transform(self.X),(self.shape[0],self.shape[1],self.n_components))
+        # if Model_cache.objects.filter(sessHash=modelHashId).exists():
+        #     time.sleep(15)
+        #     i = 0
+        #     m = True
+        #     while m:
+        #         if i%10000==0:
+        #             i = 0
+        #             m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
+        #         i += 1
 
+        #     self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+        #     print('2')
+        
+        #else:
+        #try:
+        #Model_cache.objects.create(sessHash=modelHashId,blocked=True)
+        t = time.time()
+        # BLOCKED SECTION
+        #if not os.path.exists(f'{PCA_CACHE}/{self.sess_key}'):
+        #    os.mkdir(f'{PCA_CACHE}/{self.sess_key}')
+        X = self.__prepare_train_data(data)
+        t = time.time()
+        self.pca.fit(X)
+        #self.dump(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+        #m = Model_cache.objects.get(sessHash=modelHashId)
+        #m.blocked = False
+        #m.save()
+        # END OF BLOCKED SECTION
+            # except:
+            #     print('==========')
+            #     i = 0
+            #     m = True
+            #     while m:
+            #         if i%10000==0:
+            #             i = 0
+            #             m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
+            #         i += 1
+            #     print('11')
+            #     self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+    
+    def transform(self,**kwargs):
+        print('===========TRANSFORM')
+        X = self.__prepare_infer_data(**kwargs)
+        X = self.pca.transform(X)
+        print(X.shape)
+        X = X.reshape((256,256,self.pca.n_components))
+        return B(band=X)
 
-
-
-# class RasterPCA(TransformerMixin):
-#     def __init__(self, n_components, saved_path=None, **kwargs):
-#         if saved_path is not None:
-#             self.pca = joblib.load(saved_path)
-#         else:
-#             self.pca = PCA(n_components=n_components, **kwargs)
-#         self.shape = None
-#         self.n_bands = 0
-    
-#     def dump(self, path):
-#         joblib.dump(self.pca, path)
-    
-#     def load(self, path):
-#         self.pca = joblib.load(path)
-    
-#     def fit(self, dataset, bands):
-#         self.n_bands = len(bands)
-#         self.shape = (dataset.RasterXSize, dataset.RasterYSize)
-#         X = []
-#         for band in bands:
-#             X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
-#         self.pca.fit(X)
-    
-#     def transform(self, dataset, bands):
-#         assert len(bands) == self.n_bands
-#         X = []
-#         for band in bands:
-#             X.append(dataset.GetRasterBand(band).ReadAsArray())
-#         X = np.ravel(np.asarray(X))
-#         X = self.pca.transform(X)
-#         X = X.reshape((self.shape[0],self.shape[1],-1))
-#         return X
-    
-#     def fit_transform(self, dataset, bands):
-#         self.n_bands = len(bands)
-#         self.shape = (dataset.RasterXSize, dataset.RasterYSize)
-#         print(self.shape,'=============================')
-#         X = []
-#         for band in bands:
-#             X.append(np.ravel(dataset.GetRasterBand(band).ReadAsArray()))
-#         X = self.pca.fit_transform(X)
-#         X = X.reshape((self.shape[0],self.shape[1],-1))
-#         return X
 
 class RandomForest(object):
     def __init__(self,sess_key,saved_path=None,**kwargs):
-        if saved_path is not None:
-            self.rf = joblib.load(saved_path)
-        else:
-            self.rf = RandomForestClassifier(**kwargs)
+        self.rf = joblib.load(saved_path) if saved_path is not None else RandomForestClassifier(**kwargs)
         self.colors = ()
         self.class_prediction = None
         self.sess_key = sess_key
@@ -200,11 +202,12 @@ class RandomForest(object):
     
     @property
     def prediction_map(self):
-        n = self.class_prediction.max()
-        for k in self.colors:
-            v = self.colors[k]
-            _v = [_v / 255.0 for _v in v]
-            self.colors[k] = _v
-        index_colors = [self.colors[key] if key in self.colors else (255, 255, 255, 0) for key in range(1, n + 1)]
-        #cmap = plt.matplotlib.colors.ListedColormap(index_colors, 'Classification', n)
+        # n = self.class_prediction.max()
+        # for k in self.colors:
+        #     v = self.colors[k]
+        #     _v = [_v / 255.0 for _v in v]
+        #     self.colors[k] = _v
+        # index_colors = [self.colors[key] if key in self.colors else (255, 255, 255, 0) for key in range(1, n + 1)]
+        # #cmap = plt.matplotlib.colors.ListedColormap(index_colors, 'Classification', n)
         return B(band=self.class_prediction)
+
