@@ -15,7 +15,7 @@ def dict_hash(dictionary: Dict[str, Any]) -> str:
     dhash.update(encoded)
     return dhash.hexdigest()
 
-def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
+def get_dataset_(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
     return gdal.Open(
         #'/vsicurl/'+layer,
         './main/out2019.tif',
@@ -25,7 +25,7 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
 def prepare_data(coord_format, data, bands, layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
     coordinates = []
     labels = []
-    dataset = get_dataset(layer)
+    dataset = get_dataset_(layer)
     proj = osr.SpatialReference(wkt=dataset.GetProjection())
     epsg = "EPSG:"+str(proj.GetAttrValue('AUTHORITY',1))
     for x in data:
