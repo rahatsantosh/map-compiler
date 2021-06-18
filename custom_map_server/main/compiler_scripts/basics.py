@@ -3,6 +3,7 @@ from osgeo import gdal
 
 from .helpers import coord, norm
 
+#TODO: Raise Exceptions
 
 def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326",resample=True):
     if projWin is not None:
@@ -32,7 +33,8 @@ class B():
         if dataset is None:
             self._band = band
         else:
-            self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=min,ip_maxR=max)
+            #self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=min,ip_maxR=max)
+            self._band = dataset.GetRasterBand(band_no).ReadAsArray()
     
     @property
     def band(self):
