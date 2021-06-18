@@ -49,6 +49,35 @@ def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
 
     return graph
 
+'''def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
+    proj = osr.SpatialReference(wkt=dataset.GetProjection())
+    epsg = "EPSG:"+str(proj.GetAttrValue('AUTHORITY',1))
+    coordinates = coord(coordinate, coord_sys=epsg, src_coord_sys=coord_format)
+    d = gdal.Warp(
+        '', dataset,
+        width=1, height=1,
+        outputBounds = [coordinates[0],coordinates[1],coordinates[0]+1,coordinates[1]+1],
+        format='MEM'
+    )
+    if bands is None:
+        data = d.ReadAsArray().ravel()
+        print(data)
+        data = data.tolist()
+        bands = list(range(1,dataset.RasterCount+1))
+    else:
+        data = [int(d.GetRasterBand(band).ReadAsArray()[0][0]) for band in bands]
+
+    labels = bands
+    return {
+        'type':style,
+        'data':{
+            'labels':labels,
+            'datasets':[{
+                'data':data
+            }]
+        }
+    }'''
+
 def setup(
     R, G=None, B=None,
     weight=None, 
