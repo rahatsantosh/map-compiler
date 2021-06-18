@@ -81,30 +81,10 @@
                 is_console = setup.includes('print')
                 is_tiled = (setup.includes('response') && setup.includes('setup('))
                 is_graph = setup.includes('rasterPlot')
-                console.log(is_graph);
-                console.log(is_console);
-                console.log(is_tiled);
                 if (is_tiled)
                     wmsAdd(setup,r)
                 if (is_console || is_graph)
                     console_request(setup,r)
-
-                // if (check_print)
-                // if(map.hasLayer(wmsLayer)){
-                //     map.removeLayer(wmsLayer);
-                //     lcontrol.removeLayer(wmsLayer)
-                // }
-                // //wmsLayer
-                // //2 run functions
-                // //state mgmt frontend
-                // response = L.tileLayer.wms("http://127.0.0.1:8000/wms/", {
-                //     request_script: setup,
-                //     click_hash: r
-                // });
-                // console.log(response)
-                // wmsLayer = response['wms'];
-                // document.getElementById('console').innerHTML = response['console']
-                // lcontrol.addOverlay(wmsLayer, "WMS");
             });
 
             function wmsAdd(setup,r){
@@ -124,17 +104,14 @@
                 apiRequest.responseType = 'json';
                 url = "http://127.0.0.1:8000/std/?click_hash="+r+"&request_script="+encodeURI(setup)+"&";
                 apiRequest.open("GET",url,true);
-                console.log(url)
                 apiRequest.onload  = function() {
                     var jsonResponse = apiRequest.response;
                     map_responses(jsonResponse);
                 };
-                console.log('B');
                 apiRequest.send();
             }
 
             function map_responses(jsonResponse) {
-                console.log(jsonResponse)
                 if (jsonResponse.console){
                     //var console_response = jsonResponse.console.replaceAll('\n','\n>>>')
                     document.getElementById('console').innerHTML = jsonResponse.console;//console_response;
