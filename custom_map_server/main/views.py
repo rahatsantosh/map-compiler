@@ -43,7 +43,8 @@ def nonmaprequest(request):
     
     response = {
         "console":request.console,
-        "graph":request.graph
+        "graph":request.graph,
+        "error":request.error_check,
     }
     return HttpResponse(json.dumps(response), content_type="application/json")
 
@@ -83,6 +84,7 @@ class Script():
         self.console = bool(re.search("print", self.request))
         self.map = None
         self.graph = None
+        self.error_check = False
         print(self.request)
     
     @property
@@ -91,14 +93,26 @@ class Script():
         if self.console:
             op = StringIO()
             with redirect_stdout(op):
-                exec(self.request, self.globals, _locals)
+                try:
+                    exec(self.request, self.globals, _locals)
+                except Exception as err:
+                    self.error_check = True
+                    error = parse_error(err)
+                else:
+                    error = ""
         else:
-            exec(self.request, self.globals, _locals)
+            try:
+                exec(self.request, self.globals, _locals)
+            except Exception as err:
+                self.error_check = True
+                error = parse_error(err)
+            else:
+                error = ""
 
         try:
-            self.console = op.getvalue()
+            self.console = op.getvalue() + error
         except:
-            self.console = None
+            self.console = error
 
         try:
             self.map = _locals['response']
@@ -109,3 +123,12 @@ class Script():
             self.graph = _locals['graph']
         except:
             self.graph = None
+
+def parse_error(e):
+    error = str(e)
+    regexp = re.compile("line *([0-9]+)")
+    try:
+        err_lines = int(regexp.search(error).group(1)) - 2
+    except:
+        return error
+    return re.sub("line *[0-9]+",f'line {err_lines}',error)

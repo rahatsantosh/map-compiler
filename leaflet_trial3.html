@@ -114,7 +114,10 @@
             function map_responses(jsonResponse) {
                 if (jsonResponse.console){
                     //var console_response = jsonResponse.console.replaceAll('\n','\n>>>')
-                    document.getElementById('console').innerHTML = jsonResponse.console;//console_response;
+                    if (jsonResponse.error)
+                        document.getElementById('console').innerHTML = "<font color=#cc0000>"+jsonResponse.console+"</font>";
+                    else
+                        document.getElementById('console').innerHTML = jsonResponse.console;
                 }
                 if (!jsonResponse.graph)
                     return;
