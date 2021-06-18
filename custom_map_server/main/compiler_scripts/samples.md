@@ -1,12 +1,16 @@
 # Samples
 ## Sample Scripts
-d = get_dataset(resample=False)
+d = get_dataset(resample=True)
 g = B(dataset=d, band_no=4)
 b = B(dataset=d, band_no=8)
 ndvi = (b-g)/(b+g)
 #response = setup(ndvi)
 #print(ndvi.band)
-graph = rasterPlot(d,[94.589,27.523],'EPSG:4326')
+graph = rasterPlot(
+  dataset=d,
+  coordinate=[94.589,27.523],
+  coord_format='EPSG:4326'
+)
 
 d = get_dataset()
 pca = RasterPCA(n_components = 1)
