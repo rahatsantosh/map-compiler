@@ -85,7 +85,6 @@ class Script():
         self.map = None
         self.graph = None
         self.error_check = False
-        print(self.request)
     
     @property
     def execute(self):
