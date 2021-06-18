@@ -18,6 +18,10 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None,
         )
     elif projWin is None:
         return dataset
+    elif not resample:
+        return gdal.Warp(
+            '', dataset, outputBounds=projWin, format='MEM'
+        )
     else:
         return gdal.Warp(
             '', dataset, width=256, height=256, outputBounds=projWin, format='MEM'
