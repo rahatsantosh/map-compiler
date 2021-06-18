@@ -73,14 +73,14 @@ class Script():
         regexp = re.compile(".*\&request_script=\s*([^&]*)")
         self.request = regexp.search(str(request)).group(1)
         if projWin is None:
-            self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}"',self.request)
+            self.request = re.sub("get_dataset\(",f'get_dataset(coord_sys="{coord_sys}",',self.request)
         else:
             self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}",',self.request)
         self.request = 'from .compiler_scripts.user_func import *\n' + self.request
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         self.request = re.sub("RasterPCA\(",f'RasterPCA(sess_key="{sess_key}",',self.request)
         self.globals = globals
-        self.console = None
+        self.console = bool(re.search("print", self.request))
         self.map = None
         self.graph = None
         print(self.request)
@@ -88,8 +88,11 @@ class Script():
     @property
     def execute(self):
         _locals = {}
-        op = StringIO()
-        with redirect_stdout(op):
+        if self.console:
+            op = StringIO()
+            with redirect_stdout(op):
+                exec(self.request, self.globals, _locals)
+        else:
             exec(self.request, self.globals, _locals)
 
         try:
