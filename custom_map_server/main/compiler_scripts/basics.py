@@ -5,7 +5,13 @@ from .helpers import coord, norm
 
 #TODO: Raise Exceptions
 
-def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326",resample=True):
+def get_dataset(
+        layer='http://mobileapp.nesdr.gov.in/out2019.tif',
+        projWin=None,
+        coord_sys="EPSG:4326",
+        resample=True,
+        scaleParams=[0,4000]
+        ):
     if projWin is not None:
         projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
@@ -14,24 +20,26 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None,
         gdal.GA_ReadOnly
         )
     if projWin is None and resample:
-        return gdal.Warp(
+        dataset = gdal.Warp(
             '', dataset, width=256, height=256, format='MEM'
         )
     elif projWin is None:
-        return dataset
+        dataset = dataset
     elif not resample:
-        return gdal.Warp(
+        dataset = gdal.Warp(
             '', dataset, outputBounds=projWin, format='MEM'
         )
     else:
-        return gdal.Warp(
+        dataset = gdal.Warp(
             '', dataset, width=256, height=256, outputBounds=projWin, format='MEM'
         )
+    return gdal.Translate('',dataset,scaleParams=[scaleParams], format='MEM')
 
 class B():
     def __init__(self,dataset=None, band_no=0, band=None, min=0, max=2500):
         if dataset is None:
             self._band = band
+            print('-----------',band,'-------------------------')
         else:
             #self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=min,ip_maxR=max)
             self._band = dataset.GetRasterBand(band_no).ReadAsArray()
