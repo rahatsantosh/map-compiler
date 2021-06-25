@@ -5,6 +5,8 @@ from osgeo import osr
 import numpy as np
 from PIL import Image
 import cv2
+import os
+import lxml.etree as ET
 from django.http import HttpResponse
 
 from .helpers import coord, norm, apply_cmap
@@ -12,7 +14,7 @@ from .basics import *
 from .ml import *
 
 
-def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
+'''def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
     if bands is None:
         bands = list(range(1,dataset.RasterCount+1))
     cols = dataset.RasterXSize
@@ -47,7 +49,36 @@ def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
         }
     }
 
-    return graph
+    return graph'''
+
+# gdal loc info terminal
+def rasterPlot(layer, coordinate, coord_format="EPSG:4326", bands=None, style='bar'):
+    if bands is None:
+        command = f"gdallocationinfo -xml -l_srs \"{coord_format}\" {layer} {coordinate[0]} {coordinate[1]}"
+    else:
+        command = f"gdallocationinfo -xml"
+        for b in bands:
+            command += f" -b {b} "
+        command += f"-l_srs \"{coord_format}\" {layer} {coordinate[0]} {coordinate[1]}"
+    pc = os.popen(command).read()
+    parser = ET.XMLParser(recover=True)
+    tree = ET.ElementTree(ET.fromstring(pc, parser=parser))
+    labels = []
+    data = []
+    for elem in tree.iter():
+        if elem.tag=='BandReport':
+            labels.append(int(elem.attrib['band']))
+        elif elem.tag=='Value':
+            data.append(int(elem.text))
+    return {
+        'type':style,
+        'data':{
+            'labels':labels,
+            'datasets':[{
+                'data':data
+            }]
+        }
+    }
 
 '''def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
     proj = osr.SpatialReference(wkt=dataset.GetProjection())
@@ -99,6 +130,7 @@ def setup(
     if weight is None:
         weight = [1,1,1]
     if G is None and B is None:
+        print(R.band.max(),R.band.min())
         im  = weight[0] * R.band
         if cmap is not None and cmap_order==1:
             im = apply_cmap(im, cmap)
@@ -119,7 +151,8 @@ def setup(
             ip_minR=ip_minR, ip_maxR=ip_maxR,
             ip_minG=ip_minG, ip_maxG=ip_maxG,
             ip_minB=ip_minB, ip_maxB=ip_maxB)
-        im = np.dstack((R.band,G.band,B.band))
+        #im = np.dstack((R.band,G.band,B.band))
+        im = np.dstack((x,y,z))
     _, ar = cv2.imencode('.png',im)
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
