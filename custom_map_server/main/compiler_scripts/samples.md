@@ -26,10 +26,7 @@ r = B(dataset=d, band_no=3)
 g = B(dataset=d, band_no=4)
 b = B(dataset=d, band_no=8)
 response = setup(
-  r,g,b,
-  ip_minR=0,ip_maxR=12252,
-  ip_minB=0,ip_maxB=12211,
-  ip_minG=0,ip_maxG=12536,
+  r,g,b
 )
 
 d = get_dataset()

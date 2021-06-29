@@ -114,10 +114,13 @@ def setup(
     weight=None, 
     op_minR=0, op_maxR=1, 
     op_minG=0, op_maxG=1, 
-    op_minB=0, op_maxB=1,  
-    ip_minR=-0.5, ip_maxR=0.8, 
-    ip_minG=-0.5, ip_maxG=0.8, 
-    ip_minB=-0.5, ip_maxB=0.8,
+    op_minB=0, op_maxB=1,
+    clip_minR=None, clip_maxR=None,
+    clip_minG=None, clip_maxG=None,
+    clip_minB=None, clip_maxB=None,
+    ip_minR=None, ip_maxR=None, 
+    ip_minG=None, ip_maxG=None, 
+    ip_minB=None, ip_maxB=None,
     cmap=None,
     cmap_order=1
     ):
@@ -130,29 +133,31 @@ def setup(
     if weight is None:
         weight = [1,1,1]
     if G is None and B is None:
-        print(R.band.max(),R.band.min())
         im  = weight[0] * R.band
         if cmap is not None and cmap_order==1:
             im = apply_cmap(im, cmap)
         im = np.array(norm(
             x = im,
-            op_minR=op_minR, op_maxR=op_maxR,
-            ip_minR=ip_minR, ip_maxR=ip_maxR))
+            ip_minR=ip_minR, ip_maxR=ip_maxR,
+            clip_minR=clip_minR, clip_maxR=clip_maxR,
+            op_minR=op_minR, op_maxR=op_maxR
+        ))
         if cmap is not None and cmap_order==0:
             im = apply_cmap(im, cmap)
     else:
-        x,y,z = norm(
-            x=weight[0]*R.band, 
-            y=weight[1]*G.band, 
-            z=weight[2]*B.band,
+        im = np.dstack(norm(
+            R.band,G.band,B.band,
             op_minR=op_minR, op_maxR=op_maxR,
             op_minG=op_minG, op_maxG=op_maxG,
             op_minB=op_minB, op_maxB=op_maxB,
+            clip_minR=clip_minR, clip_maxR=clip_maxR,
+            clip_minG=clip_minG, clip_maxG=clip_maxG,
+            clip_minB=clip_minB, clip_maxB=clip_maxB,
             ip_minR=ip_minR, ip_maxR=ip_maxR,
             ip_minG=ip_minG, ip_maxG=ip_maxG,
-            ip_minB=ip_minB, ip_maxB=ip_maxB)
-        #im = np.dstack((R.band,G.band,B.band))
-        im = np.dstack((x,y,z))
+            ip_minB=ip_minB, ip_maxB=ip_maxB
+        ))
+    print(im.min(),im.max(),'==============================')
     _, ar = cv2.imencode('.png',im)
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
