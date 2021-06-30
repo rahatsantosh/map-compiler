@@ -13,8 +13,8 @@ def get_dataset(
     if projWin is not None:
         projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
-        #'/vsicurl/'+layer,
-        './main/out2019.tif',
+        '/vsicurl/'+layer,
+        #'./main/out2019.tif',
         gdal.GA_ReadOnly
         )
     if scaleParams:

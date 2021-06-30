@@ -1,7 +1,9 @@
 '''
-Front End, User Accessible Wrapper Functions
+Front End, Response Functions
+[User Accessible]
+rasterPlot: Plotting custom graph of the raster values of certain coordinate.
+setup: Response function to give WMS response map, to be viewed in frontend.
 '''
-from osgeo import osr
 import numpy as np
 from PIL import Image
 import cv2
@@ -9,50 +11,25 @@ import os
 import lxml.etree as ET
 from django.http import HttpResponse
 
-from .helpers import coord, norm, apply_cmap
+from .helpers import norm, apply_cmap
 from .basics import *
 from .ml import *
 
 
-'''def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
-    if bands is None:
-        bands = list(range(1,dataset.RasterCount+1))
-    cols = dataset.RasterXSize
-    rows = dataset.RasterYSize
-    proj = osr.SpatialReference(wkt=dataset.GetProjection())
-    epsg = "EPSG:"+str(proj.GetAttrValue('AUTHORITY',1))
-    coordinates = coord(coordinate, coord_sys=epsg, src_coord_sys=coord_format)
-
-    transform = dataset.GetGeoTransform()
-
-    xOrigin = transform[0]
-    yOrigin = transform[3]
-    pixelWidth = transform[1]
-    pixelHeight = -transform[5]
-    col = int((coordinates[0] - xOrigin) / pixelWidth)
-    row = int((yOrigin - coordinates[1] ) / pixelHeight)
-
-    def prepare_data_bandwise(band):
-        band = dataset.GetRasterBand(band)
-        data = band.ReadAsArray(0, 0, cols, rows).tolist()
-        return data[row][col]
-
-    band_data = list(map(prepare_data_bandwise,bands))
-    labels = bands
-    graph = {
-        'type':style,
-        'data':{
-            'labels':labels,
-            'datasets':[{
-                'data':band_data
-            }]
-        }
-    }
-
-    return graph'''
-
-# gdal loc info terminal
 def rasterPlot(layer, coordinate, coord_format="EPSG:4326", bands=None, style='bar'):
+    """
+    Returns graph of required coordinate in a Chart.js usable format.
+    
+    Keyword Arguments:
+    layer[string] -- Optimized-Geotiff Layer
+    coordinate[list] -- coordinates to measure band data
+    coord_format[string] -- Coordinate system used; default EPSG:4326
+    bands[list] -- bands to be returned. On None uses all bands.
+    style[string] -- graph type.
+    
+    Return:
+    Dictionary in Chart.js readable format.
+    """
     if bands is None:
         command = f"gdallocationinfo -xml -l_srs \"{coord_format}\" {layer} {coordinate[0]} {coordinate[1]}"
     else:
@@ -80,35 +57,6 @@ def rasterPlot(layer, coordinate, coord_format="EPSG:4326", bands=None, style='b
         }
     }
 
-'''def rasterPlot(dataset, coordinate, coord_format, bands=None, style='bar'):
-    proj = osr.SpatialReference(wkt=dataset.GetProjection())
-    epsg = "EPSG:"+str(proj.GetAttrValue('AUTHORITY',1))
-    coordinates = coord(coordinate, coord_sys=epsg, src_coord_sys=coord_format)
-    d = gdal.Warp(
-        '', dataset,
-        width=1, height=1,
-        outputBounds = [coordinates[0],coordinates[1],coordinates[0]+1,coordinates[1]+1],
-        format='MEM'
-    )
-    if bands is None:
-        data = d.ReadAsArray().ravel()
-        print(data)
-        data = data.tolist()
-        bands = list(range(1,dataset.RasterCount+1))
-    else:
-        data = [int(d.GetRasterBand(band).ReadAsArray()[0][0]) for band in bands]
-
-    labels = bands
-    return {
-        'type':style,
-        'data':{
-            'labels':labels,
-            'datasets':[{
-                'data':data
-            }]
-        }
-    }'''
-
 def setup(
     R, G=None, B=None,
     weight=None, 
@@ -123,7 +71,15 @@ def setup(
     ip_minB=None, ip_maxB=None,
     cmap=None,
     cmap_order=1
-    ):
+    ):  # sourcery no-metrics
+    """
+    Sets Up WMS Response Map
+
+    Keyword Arguments:
+    R [Type:B] -- Band in Red position. If grayscale map, Only band passed to this argument.
+    G [Type:B] -- Band in Green position. If grayscale map, pass None.
+    B [Type:B] -- Band in Blue position. If grayscale map, pass None.
+    """
     if (np.max(R.band)==0 and G is None and B is None) or (np.max(R.band)==0 and np.max(G.band)==0 and np.max(B.band)==0):
         im = np.zeros((256,256,4))
         img = Image.fromarray(im, mode='RGBA')
@@ -158,6 +114,6 @@ def setup(
             ip_minB=ip_minB, ip_maxB=ip_maxB
         ))
     print(im.min(),im.max(),'==============================')
-    _, ar = cv2.imencode('.png',im)
+    _, ar = cv2.imencode('.png',im.astype(np.uint8))
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response

@@ -2,7 +2,6 @@ import numpy as np
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
 import os
 from ..models import Model_cache
 from .helpers import prepare_data, dict_hash
@@ -202,12 +201,5 @@ class RandomForest(object):
     
     @property
     def prediction_map(self):
-        # n = self.class_prediction.max()
-        # for k in self.colors:
-        #     v = self.colors[k]
-        #     _v = [_v / 255.0 for _v in v]
-        #     self.colors[k] = _v
-        # index_colors = [self.colors[key] if key in self.colors else (255, 255, 255, 0) for key in range(1, n + 1)]
-        # #cmap = plt.matplotlib.colors.ListedColormap(index_colors, 'Classification', n)
         return B(band=self.class_prediction)
 

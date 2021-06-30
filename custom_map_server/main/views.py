@@ -5,33 +5,6 @@ import json
 from io import StringIO
 from contextlib import redirect_stdout
 
-'''
-Sample url request:
-http://127.0.0.1:8000/wms/?service=WMS&request=GetMap&
-layers=&styles=&format=image%2Fjpeg&
-transparent=false&version=1.1.1&
-input_band=B08%2CB02%2CB03&
-min_threshold=0%2C0%2C0&
-max_threshold=1%2C1%2C1&
-grayscale=true&
-weight=1%2C1%2C1&
-width=256&height=256&srs=EPSG%3A3857&
-bbox=10488383.273178745,3169996.4370428305,10527519.031660756,3209132.19552484
-'''
-
-'''
-Sample url script:
-http://127.0.0.1:8000/wms/?service=WMS&
-request=GetMap&
-layers=&styles=&format=image%2Fjpeg&
-transparent=false&
-version=1.1.1&
-request_script=d%20%3D%20get_dataset()%0Ar1%20%3D%20B(d%2C%203)%0Ar2%20%3D%20B(d%2C%201)%0Ar%20%3D%20r1%20%2B%20r2%0Ag%20%3D%20B(d%2C%204)%0Ab%20%3D%20B(d%2C%208)%0Asetup(r%2Cg%2Cb)&
-width=256&
-height=256&
-srs=EPSG%3A3857&
-bbox=10488383.273178745,3248267.954006849,10527519.031660756,3287403.7124888618
-'''
 
 def nonmaprequest(request):
     regexp = re.compile(".*click_hash=\s*([^&\n\r'>]*)")
@@ -65,8 +38,6 @@ def maprequest(request):
     request.execute
 
     return request.map
-
-#TODO: src and dest srs
 
 class Script():
     def __init__(self, editor, globals, coord_sys, sess_key, projWin=None):
