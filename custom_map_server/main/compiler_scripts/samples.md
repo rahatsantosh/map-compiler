@@ -7,8 +7,8 @@ ndvi = (b-g)/(b+g)
 #response = setup(ndvi)
 #print(ndvi.band)
 graph = rasterPlot(
-  dataset=d,
-  coordinate=[94.589,27.523],
+  layer='./main/out2019.tif',
+  coordinate=[94.976,27.167],
   coord_format='EPSG:4326'
 )
 
