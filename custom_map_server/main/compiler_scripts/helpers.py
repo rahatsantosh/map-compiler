@@ -1,3 +1,4 @@
+# trial
 from osgeo import gdal, osr
 import numpy as np
 from PIL import Image
@@ -98,33 +99,62 @@ def apply_cmap(im, cmap):
     color_image = palette[im_]
     return np.reshape(color_image, (im.shape[0],im.shape[1],3))
 
+def single_band_norm(
+    x,
+    op_min=0, op_max=1,
+    ip_min=None, ip_max=None,
+    clip_min=None, clip_max=None
+    ):
+    clip_flag = clip_min is None or clip_max is None
+    ip_flag = ip_min is None or ip_max is None
+    indices = np.where(x==0)
+    if not ip_flag:
+        x = (x-ip_min)/(ip_max-ip_min)
+        x = ((op_max-op_min)*x)+op_min
+    x[indices] = 0
+    if not clip_flag:
+        x = np.clip(x, clip_min, clip_max)
+    x = x*255.0 if not ip_flag else x
+    return x
+
 def norm(
     x, y=None, z=None,
     op_minR=0, op_maxR=1,
     op_minG=0, op_maxG=1,
     op_minB=0, op_maxB=1,
-    ip_minR=0, ip_maxR=2500,
-    ip_minG=0, ip_maxG=2500,
-    ip_minB=0, ip_maxB=4000):
+    clip_minR=None, clip_maxR=None,
+    clip_minG=None, clip_maxG=None,
+    clip_minB=None, clip_maxB=None,
+    ip_minR=None, ip_maxR=None,
+    ip_minG=None, ip_maxG=None,
+    ip_minB=None, ip_maxB=None
+    ):
     if y is None and z is None:
-        indices = np.where(x==0)
-        x = (x-ip_minR)/(ip_maxR-ip_minR)
-        x = ((op_maxR-op_minR)*x)+op_minR
-        x[indices] = 0
-        return x * 255.0
-    indices1 = np.where(x==0)
-    indices2 = np.where(y==0)
-    indices3 = np.where(z==0)
-    x = (x-ip_minB)/(ip_maxB-ip_minB)
-    y = (x-ip_minG)/(ip_maxG-ip_minG)
-    z = (x-ip_minR)/(ip_maxR-ip_minR)
-    x = ((op_maxB-op_minB)*x)+op_minB
-    y = ((op_maxG-op_minG)*y)+op_minG
-    z = ((op_maxR-op_minR)*z)+op_minR
-    x[indices1] = 0
-    y[indices2] = 0
-    z[indices3] = 0
-    return x * 255.0, y * 255.0, z * 255.0
+        return single_band_norm(
+                x=x,
+                op_min=op_minR, op_max=op_maxR,
+                ip_min=ip_minR, ip_max=ip_maxR,
+                clip_min=clip_minR, clip_max=clip_maxR
+                )
+    x = single_band_norm(
+                x=x,
+                op_min=op_minR, op_max=op_maxR,
+                ip_min=ip_minR, ip_max=ip_maxR,
+                clip_min=clip_minR, clip_max=clip_maxR
+                )
+    y = single_band_norm(
+                x=y,
+                op_min=op_minG, op_max=op_maxG,
+                ip_min=ip_minG, ip_max=ip_maxG,
+                clip_min=clip_minG, clip_max=clip_maxG
+                )
+    z = single_band_norm(
+                x=z,
+                op_min=op_minB, op_max=op_maxB,
+                ip_min=ip_minB, ip_max=ip_maxB,
+                clip_min=clip_minB, clip_max=clip_maxB
+                )
+    return x, y, z
 
 def color_stretch(image, index, minmax=(0, 10000)):
     colors = image[:, :, index].astype(np.float64)

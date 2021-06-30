@@ -1,10 +1,15 @@
 import numpy as np
 from osgeo import gdal
 
-from .helpers import coord, norm
+from .helpers import coord
 
-
-def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None, coord_sys="EPSG:4326",resample=True):
+def get_dataset(
+        layer='http://mobileapp.nesdr.gov.in/out2019.tif',
+        projWin=None,
+        coord_sys="EPSG:4326",
+        resample=True,
+        scaleParams=True
+        ):
     if projWin is not None:
         projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
@@ -12,27 +17,34 @@ def get_dataset(layer='http://mobileapp.nesdr.gov.in/out2019.tif', projWin=None,
         './main/out2019.tif',
         gdal.GA_ReadOnly
         )
+    if scaleParams:
+        stats = [dataset.GetRasterBand(i+1).GetStatistics(True, True) for i in range(dataset.RasterCount)]
+        vmin, vmax, _, _ = zip(*stats)
+        scaleParams = list(zip(*[vmin, vmax]))
+    else:
+        scaleParams = None
     if projWin is None and resample:
-        return gdal.Warp(
+        dataset = gdal.Warp(
             '', dataset, width=256, height=256, format='MEM'
         )
     elif projWin is None:
-        return dataset
+        dataset = dataset
     elif not resample:
-        return gdal.Warp(
+        dataset = gdal.Warp(
             '', dataset, outputBounds=projWin, format='MEM'
         )
     else:
-        return gdal.Warp(
+        dataset = gdal.Warp(
             '', dataset, width=256, height=256, outputBounds=projWin, format='MEM'
         )
+    return gdal.Translate('',dataset,scaleParams=scaleParams, format='MEM')
 
 class B():
     def __init__(self,dataset=None, band_no=0, band=None, min=0, max=2500):
         if dataset is None:
             self._band = band
         else:
-            self._band = norm(x=np.array(dataset.GetRasterBand(band_no).ReadAsArray()),ip_minR=min,ip_maxR=max)
+            self._band = dataset.GetRasterBand(band_no).ReadAsArray()
     
     @property
     def band(self):
