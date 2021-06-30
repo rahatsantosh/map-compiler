@@ -47,51 +47,41 @@ class RasterPCA():
         hash_val = dict_hash(data)
         modelHashId = self.sess_key + str(hash_val)
 
-        # if Model_cache.objects.filter(sessHash=modelHashId).exists():
-        #     time.sleep(15)
-        #     i = 0
-        #     m = True
-        #     while m:
-        #         if i%10000==0:
-        #             i = 0
-        #             m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
-        #         i += 1
-
-        #     self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
-        #     print('2')
-        
-        #else:
-        #try:
-        #Model_cache.objects.create(sessHash=modelHashId,blocked=True)
-        t = time.time()
-        # BLOCKED SECTION
-        #if not os.path.exists(f'{PCA_CACHE}/{self.sess_key}'):
-        #    os.mkdir(f'{PCA_CACHE}/{self.sess_key}')
-        X = self.__prepare_train_data(data)
-        t = time.time()
-        self.pca.fit(X)
-        #self.dump(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
-        #m = Model_cache.objects.get(sessHash=modelHashId)
-        #m.blocked = False
-        #m.save()
-        # END OF BLOCKED SECTION
-            # except:
-            #     print('==========')
-            #     i = 0
-            #     m = True
-            #     while m:
-            #         if i%10000==0:
-            #             i = 0
-            #             m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
-            #         i += 1
-            #     print('11')
-            #     self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+        if Model_cache.objects.filter(sessHash=modelHashId).exists():
+            i = 0
+            m = True
+            while m:
+                if i%10000==0:
+                    i = 0
+                    m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
+                i += 1
+            self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+        else:
+            try:
+                Model_cache.objects.create(sessHash=modelHashId,blocked=True)
+                # BLOCKED SECTION
+                if not os.path.exists(f'{PCA_CACHE}/{self.sess_key}'):
+                    os.mkdir(f'{PCA_CACHE}/{self.sess_key}')
+                X = self.__prepare_train_data(data)
+                self.pca.fit(X)
+                self.dump(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+                m = Model_cache.objects.get(sessHash=modelHashId)
+                m.blocked = False
+                m.save()
+                # END OF BLOCKED SECTION
+            except:
+                i = 0
+                m = True
+                while m:
+                    if i%10000==0:
+                        i = 0
+                        m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
+                    i += 1
+                self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
     
     def transform(self,**kwargs):
-        print('===========TRANSFORM')
         X = self.__prepare_infer_data(**kwargs)
         X = self.pca.transform(X)
-        print(X.shape)
         X = X.reshape((256,256,self.pca.n_components))
         return B(band=X)
 

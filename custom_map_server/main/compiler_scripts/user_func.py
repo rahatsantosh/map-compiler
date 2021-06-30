@@ -113,7 +113,6 @@ def setup(
             ip_minG=ip_minG, ip_maxG=ip_maxG,
             ip_minB=ip_minB, ip_maxB=ip_maxB
         ))
-    print(im.min(),im.max(),'==============================')
     _, ar = cv2.imencode('.png',im.astype(np.uint8))
     response = HttpResponse(ar.tobytes(),content_type="image/png")
     return response
