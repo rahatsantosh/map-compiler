@@ -1,11 +1,14 @@
+<!-- Front end code editor. Sends user script as WMS request or simple http request to backend. -->
 <!DOCTYPE html>
 <html>
     <head>
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/codemirror.min.css" />
+        <!-- Code Mirror SETI theme -->
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.61.0/theme/seti.min.css" />
 
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/codemirror.min.js"></script>
+        <!-- Code Mirror Python settings -->
         <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.52.2/mode/python/python.min.js"></script>
         <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3/dist/Chart.min.js"></script>
@@ -31,6 +34,7 @@
                 color: royalblue;
             }
         </style>
+
         <title>Trial</title>
     </head>
     <body>
@@ -76,8 +80,9 @@
             document.getElementById("btn").addEventListener("click", function(){
                 let r = Date.now();
                 setup = myCodeMirror.getValue();
+                // Removing all commented lines from user script
                 setup = setup.replaceAll(/#[^\n\r]*[\n]/g,"")
-
+                // Check for print or response or plot statements in user script
                 is_console = setup.includes('print')
                 is_tiled = (setup.includes('response') && setup.includes('setup('))
                 is_graph = setup.includes('rasterPlot')
@@ -88,6 +93,7 @@
             });
 
             function wmsAdd(setup,r){
+                // Send WMS request and add responses to map
                 if(map.hasLayer(wmsLayer)){
                     map.removeLayer(wmsLayer);
                     lcontrol.removeLayer(wmsLayer)
@@ -100,6 +106,7 @@
             }
 
             function console_request(setup,r){
+                // Send std http request and, print response to console and plot to graph
                 let apiRequest = new XMLHttpRequest();
                 apiRequest.responseType = 'json';
                 url = "http://127.0.0.1:8000/std/?click_hash="+r+"&request_script="+encodeURI(setup)+"&";
@@ -112,6 +119,7 @@
             }
 
             function map_responses(jsonResponse) {
+                // Mapping segments of json response to console and to graph
                 if (jsonResponse.console){
                     //var console_response = jsonResponse.console.replaceAll('\n','\n>>>')
                     if (jsonResponse.error)
