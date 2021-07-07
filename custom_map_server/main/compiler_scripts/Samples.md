@@ -1,5 +1,6 @@
-# Sample Scripts
-### Sample url
+# Samples
+## Sample URLs
+### Sample request
 http://127.0.0.1:8000/wms/?service=WMS&request=GetMap&layers=&styles=&format=image%2Fjpeg&transparent=false&version=1.1.1&request_script=d%20%3D%20get_dataset()%0Ar%20%3D%20B(dataset%3Dd%2C%20band_no%3D3)%0Ag%20%3D%20B(dataset%3Dd%2C%20band_no%3D4)%0Ab%20%3D%20B(dataset%3Dd%2C%20band_no%3D8)%0Aresponse%20%3D%20setup(%0A%20%20r%2Cg%2Cb%0A)&click_hash=1625623494166&width=256&height=256&srs=EPSG%3A3857&bbox=10527519.031660756,3248267.954006849,10566654.790142765,3287403.7124888618
 
 <strong>Separated:</strong><br />
@@ -35,6 +36,8 @@ srs=EPSG%3A3857&<br />
 bbox=10527519.031660756,3248267.954006849,10566654.790142765,3287403.7124888618<br />
 
 Except request_script and click_hash, other field are automatically filled by leaflet as part of WMS Tile request.
+
+## Sample Scripts
 
 ### Raster Plot
 ```python
