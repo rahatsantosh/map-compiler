@@ -9,6 +9,7 @@ custom_map_server/main/out2019.tif
 custom_map_server/main/model1.joblib
 custom_map_server/cache
 .vscode
+*.tif
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

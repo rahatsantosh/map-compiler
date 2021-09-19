@@ -44,7 +44,9 @@ def get_dataset(
     if projWin is not None:
         projWin = coord(projWin, coord_sys)
     dataset = gdal.Open(
-        '/vsicurl/'+layer,
+        #'/vsicurl/'+layer,
+        './main/2019_NOV_DEC_compressed_resample.tif',
+        #'/media/kitoo/Pers/nesac/2019_NOV_DEC_compressed.tif',
         #'./main/out2019.tif', # Path to Local Optimized-Geotiff for testing purposes
         gdal.GA_ReadOnly
         )

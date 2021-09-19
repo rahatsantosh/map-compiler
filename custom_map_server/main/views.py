@@ -121,18 +121,18 @@ class Script():
         _locals = {}
         if self.console:
             # If print function exists, redirect all stdout to op variable
-            op = StringIO()
-            with redirect_stdout(op):
-                try:
+            # op = StringIO()
+            # with redirect_stdout(op):
+                # try:
                     # Execute script
-                    exec(self.request, self.globals, _locals)
-                except Exception as err:
-                    # If error caught, set error_check flag to true
-                    self.error_check = True
-                    # Parse error message
-                    error = parse_error(err)
-                else:
-                    error = ""
+            exec(self.request, self.globals, _locals)
+                # except Exception as err:
+                #     # If error caught, set error_check flag to true
+                #     self.error_check = True
+                #     # Parse error message
+                #     error = parse_error(err)
+                # else:
+                #     error = ""
         else:
             try:
                 # Execute script
@@ -145,10 +145,10 @@ class Script():
             else:
                 error = ""
 
-        try:
-            self.console = op.getvalue() + "\n" + error
-        except:
-            self.console = error
+        # try:
+        #     self.console = op.getvalue() + "\n" + error
+        # except:
+        #     self.console = error
 
         try:
             # map response in script stored to 'response' variable response by user

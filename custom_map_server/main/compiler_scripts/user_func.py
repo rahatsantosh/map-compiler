@@ -116,6 +116,7 @@ def setup(
     Returns:
         response [django.http.response] -- 'png' media response of grayscale or rgb format depending on input bands
     """
+    #print(R.band.size(), G.band.size(), B.band.size())
     if (np.max(R.band)==0 and G is None and B is None) or (np.max(R.band)==0 and np.max(G.band)==0 and np.max(B.band)==0):
         im = np.zeros((256,256,4))
         img = Image.fromarray(im, mode='RGBA')

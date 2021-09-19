@@ -48,7 +48,9 @@ def get_dataset_(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
             Object of type osgeo.gdal.Dataset
     """
     return gdal.Open(
-        '/vsicurl/'+layer,
+        #'/vsicurl/'+layer,
+        #'/media/kitoo/Pers/nesac/2019_NOV_DEC_compressed.tif',
+        './main/2019_NOV_DEC_compressed_resample.tif',
         #'./main/out2019.tif', # Path to Local Optimized-Geotiff for testing purposes
         gdal.GA_ReadOnly
         )

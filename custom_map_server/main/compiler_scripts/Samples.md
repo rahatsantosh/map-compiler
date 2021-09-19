@@ -100,7 +100,7 @@ b = B(dataset=d, band_no=8)
 ndvi = (b-g)/(b+g)
 response = setup(
   ndvi,
-  ip_minR=-0.5,op_minR=0.5,
+  ip_minR=-0.5,ip_maxR=3000,
 )
 ```
 
@@ -113,7 +113,7 @@ ndvi = (b-g)/(b+g)
 r = ndvi>0.5 # Threshold value
 response = setup(
   r,
-  ip_minR=0,op_minR=1,
+  ip_minR=-0.5,ip_maxR=3000,
 )
 ```
 
