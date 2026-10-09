@@ -3,11 +3,12 @@ nbs/example2
 nbs/example3
 nbs/.ipynb_checkpoints
 nbs/out2019.tif
-custom_map_server/main/LE70220491999322EDC01_stack.gtif
-custom_map_server/main/LE70220491999322EDC01_stack.gtif.aux.xml
-custom_map_server/main/out2019.tif
-custom_map_server/main/model1.joblib
-custom_map_server/cache
+server/core/LE70220491999322EDC01_stack.gtif
+server/core/LE70220491999322EDC01_stack.gtif.aux.xml
+server/core/out2019.tif
+server/core/model1.joblib
+server/cache
+data/
 .vscode
 *.tif
 

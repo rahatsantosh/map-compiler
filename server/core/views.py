@@ -97,7 +97,7 @@ class Script():
             # Attach coord_sys and projWin arguments to get_dataset function
             self.request = re.sub("get_dataset\(",f'get_dataset(projWin={projWin}, coord_sys="{coord_sys}",',self.request)
         # Attach necessary import statements
-        self.request = 'from .compiler_scripts.user_func import *\n' + self.request
+        self.request = 'from .raster.user_func import *\n' + self.request
         # If RandomForest command exists add, session key as argument
         self.request = re.sub("RandomForest\(",f'RandomForest(sess_key="{sess_key}",',self.request)
         # If PCA command exists add, session key as argument
