@@ -12,11 +12,26 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 import os
-from ..models import Model_cache
+from ..models import ModelCache
 from .helpers import prepare_data, dict_hash
 import time
 from .core import B, get_dataset
 from .storage_paths import *
+
+
+TRAINING_POLL_INTERVAL = 0.5
+TRAINING_TIMEOUT = 120
+
+
+def _wait_for_training(model_hash_id: str):
+    elapsed = 0.0
+    while elapsed < TRAINING_TIMEOUT:
+        entry = ModelCache.objects.filter(session_hash=model_hash_id).first()
+        if entry is None or not entry.blocked:
+            return
+        time.sleep(TRAINING_POLL_INTERVAL)
+        elapsed += TRAINING_POLL_INTERVAL
+    raise TimeoutError(f"Training timed out for {model_hash_id}")
 
 
 class RasterPCA():
@@ -172,45 +187,22 @@ class RasterPCA():
 
         # Finally only one request from each session enters BLOCKED SECTION and trains
         # and caches the model, the rest of the requests simply access the caches model.
-        if Model_cache.objects.filter(sessHash=modelHashId).exists():
-            i = 0
-            m = True # Blocked section flag
-            while m:
-                # Wait for other requests from same session to exit BLOCKED SECTION
-                if i%10000==0:
-                    i = 0
-                    m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
-                i += 1
-            # Load from cache
-            self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
+        cache_path = f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib'
+        if ModelCache.objects.filter(session_hash=modelHashId).exists():
+            _wait_for_training(modelHashId)
+            self.load(path=cache_path)
         else:
             try:
-                Model_cache.objects.create(sessHash=modelHashId,blocked=True)
-                # BLOCKED SECTION
-                if not os.path.exists(f'{PCA_CACHE}/{self.sess_key}'):
-                    os.mkdir(f'{PCA_CACHE}/{self.sess_key}')
-                # Prepare training data
+                ModelCache.objects.create(session_hash=modelHashId, blocked=True)
+                os.makedirs(f'{PCA_CACHE}/{self.sess_key}', exist_ok=True)
                 X = self.__prepare_train_data(data)
                 self.pca.fit(X)
-                # Dump to cache
-                self.dump(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
-                m = Model_cache.objects.get(sessHash=modelHashId)
-                m.blocked = False
-                m.save()
-                # END OF BLOCKED SECTION
-            except:
-                # To counter the case when multiple same session requests attempt to enter
-                # the blocked session together.
-                i = 0
-                m = True # Blocked section flag
-                while m:
-                    # Wait for other requests from same session to exit BLOCKED SECTION
-                    if i%10000==0:
-                        i = 0
-                        m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
-                    i += 1
-                self.load(path=f'{PCA_CACHE}/{self.sess_key}/{hash_val}.joblib')
-    
+                self.dump(path=cache_path)
+                ModelCache.objects.filter(session_hash=modelHashId).update(blocked=False)
+            except Exception:
+                _wait_for_training(modelHashId)
+                self.load(path=cache_path)
+
     def transform(self,**kwargs):
         """
         Transform data to single raster band.
@@ -343,51 +335,26 @@ class RandomForest(object):
 
         # Finally only one request from each session enters BLOCKED SECTION and trains
         # and caches the model, the rest of the requests simply access the caches model.
-        if Model_cache.objects.filter(sessHash=modelHashId).exists():
-            time.sleep(15)
-            i = 0
-            m = True # Blocked section flag
-            while m:
-                # Wait for other requests from same session to exit BLOCKED SECTION
-                if i%10000==0:
-                    i = 0
-                    m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
-                i += 1
-            # Load from cache
-            self.load(path=f'{RANDOM_FOREST_CACHE}/{self.sess_key}/{hash_val}.joblib')
-        
+        cache_path = f'{RANDOM_FOREST_CACHE}/{self.sess_key}/{hash_val}.joblib'
+        if ModelCache.objects.filter(session_hash=modelHashId).exists():
+            _wait_for_training(modelHashId)
+            self.load(path=cache_path)
         else:
             try:
-                Model_cache.objects.create(sessHash=modelHashId,blocked=True)
-                t = time.time()
-                # BLOCKED SECTION
-                if not os.path.exists(f'{RANDOM_FOREST_CACHE}/{self.sess_key}'):
-                    os.mkdir(f'{RANDOM_FOREST_CACHE}/{self.sess_key}')
-                # Prepare training data
+                ModelCache.objects.create(session_hash=modelHashId, blocked=True)
+                os.makedirs(f'{RANDOM_FOREST_CACHE}/{self.sess_key}', exist_ok=True)
                 X, y = prepare_data(
-                    layer=data['layer'],coord_format=data['coord_format'],data=data['data'],bands=data['bands']
+                    layer=data['layer'],
+                    coord_format=data['coord_format'],
+                    data=data['data'],
+                    bands=data['bands'],
                 )
-                t = time.time()
                 self.rf.fit(X, y)
-                # Dump to cache
-                self.dump(path=f'{RANDOM_FOREST_CACHE}/{self.sess_key}/{hash_val}.joblib')
-                m = Model_cache.objects.get(sessHash=modelHashId)
-                m.blocked = False
-                m.save()
-                # END OF BLOCKED SECTION
-            except:
-                # To counter the case when multiple same session requests attempt to enter
-                # the blocked session together.
-                i = 0
-                m = True # Blocked section flag
-                while m:
-                    # Wait for other requests from same session to exit BLOCKED SECTION
-                    if i%10000==0:
-                        i = 0
-                        m = Model_cache.objects.filter(sessHash=modelHashId).values_list('blocked')[0][0]
-                    i += 1
-
-                self.load(path=f'{RANDOM_FOREST_CACHE}/{self.sess_key}/{hash_val}.joblib')
+                self.dump(path=cache_path)
+                ModelCache.objects.filter(session_hash=modelHashId).update(blocked=False)
+            except Exception:
+                _wait_for_training(modelHashId)
+                self.load(path=cache_path)
     
     def predict(self, img, bands):
         """

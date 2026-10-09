@@ -1,7 +1,8 @@
-import json
 import re
+from pathlib import Path
 from urllib.parse import unquote
 
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 
 from compiler import compile_and_execute
@@ -105,10 +106,17 @@ def maprequest(request):
     return HttpResponse(status=204)
 
 
-def _format_error(error):
-    error_str = str(error)
-    line_match = re.search(r"line *(\d+)", error_str)
-    if line_match:
-        corrected = int(line_match.group(1))
-        error_str = re.sub(r"line *\d+", f"line {corrected}", error_str)
-    return error_str
+def list_datasets(request):
+    data_dir = Path(settings.DATA_DIR)
+    if not data_dir.exists():
+        return JsonResponse({"datasets": []})
+
+    paths = sorted(
+        p for p in data_dir.rglob("*") if p.suffix.lower() in {".tif", ".tiff"}
+    )
+    datasets = [
+        {"name": p.name, "path": str(p), "size_mb": round(p.stat().st_size / (1024 * 1024), 1)}
+        for p in paths
+    ]
+
+    return JsonResponse({"datasets": datasets})

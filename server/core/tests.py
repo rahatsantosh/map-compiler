@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from django.test import TestCase, RequestFactory
@@ -117,3 +118,32 @@ class TestMapRequestView(TestCase):
         )
         response = maprequest(request)
         assert response.status_code == 204
+
+
+class TestListDatasetsView(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @patch("core.views.settings")
+    def test_empty_when_dir_missing(self, mock_settings):
+        from core.views import list_datasets
+        mock_settings.DATA_DIR = Path("/nonexistent/path")
+        request = self.factory.get("/api/datasets/")
+        response = list_datasets(request)
+        data = json.loads(response.content)
+        assert data == {"datasets": []}
+
+    def test_finds_tif_files(self):
+        import tempfile
+        from core.views import list_datasets
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tif = Path(tmpdir) / "test.tif"
+            tif.write_bytes(b"\x00" * 1024)
+            with patch("core.views.settings") as mock_settings:
+                mock_settings.DATA_DIR = Path(tmpdir)
+                request = self.factory.get("/api/datasets/")
+                response = list_datasets(request)
+                data = json.loads(response.content)
+                assert len(data["datasets"]) == 1
+                assert data["datasets"][0]["name"] == "test.tif"
