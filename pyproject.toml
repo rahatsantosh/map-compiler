@@ -1,0 +1,40 @@
+[project]
+name = "map-compiler"
+version = "0.1.0"
+description = "Geospatial analytics platform with AST-based compiler for safe raster processing"
+requires-python = ">=3.10"
+dependencies = [
+    "django>=4.2,<5",
+    "django-cors-headers>=4.0",
+    "numpy>=1.24",
+    "Pillow>=10.0",
+    "opencv-python-headless>=4.8",
+    "lxml>=4.9",
+    "pyproj>=3.6",
+    "scikit-learn>=1.3",
+    "joblib>=1.3",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+gdal = [
+    "GDAL>=3.6",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-django>=4.5",
+    "ruff>=0.4",
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["server"]
+testpaths = ["server"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
