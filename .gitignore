@@ -12,6 +12,10 @@ data/
 .vscode
 *.tif
 
+# Node / web
+node_modules/
+web/dist/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
