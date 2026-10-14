@@ -58,12 +58,11 @@ sudo apt-get install -y libgdal-dev gdal-bin python3-dev
 
 # Python environment
 uv venv
-source .venv/bin/activate
 uv pip install -e .
 uv pip install GDAL==$(gdal-config --version)
 
 # Database
-python server/manage.py migrate
+uv run python server/manage.py migrate
 
 # Frontend
 cd web && npm install && cd ..
@@ -76,7 +75,7 @@ mkdir -p data
 
 ```bash
 # Terminal 1: Django server
-python server/manage.py runserver
+uv run python server/manage.py runserver
 
 # Terminal 2: Vite dev server (proxies API to Django)
 cd web && npm run dev
