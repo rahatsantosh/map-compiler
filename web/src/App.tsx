@@ -6,7 +6,11 @@ import Chart from "./components/Chart";
 import DatasetSelector from "./components/DatasetSelector";
 import { runScript, buildWmsUrl } from "./api/client";
 
-const DEFAULT_SCRIPT = 'print("Hello, World")';
+const DEFAULT_SCRIPT = `d = get_dataset(layer="path/to/dataset.tif")
+nir = B(d, 4)
+red = B(d, 3)
+ndvi = (nir - red) / (nir + red)
+response = setup(ndvi)`;
 
 export default function App() {
   const [script, setScript] = useState(DEFAULT_SCRIPT);

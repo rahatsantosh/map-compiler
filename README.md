@@ -47,16 +47,20 @@ map-compiler/
 
 ## Setup
 
-**Prerequisites**: Python 3.10+, Node.js 20+, GDAL with Python bindings (`osgeo`)
+**Prerequisites**: Python 3.10+, Node.js 20+, [uv](https://docs.astral.sh/uv/), GDAL system library (`libgdal-dev` on Debian/Ubuntu)
 
 ```bash
 # Clone and enter the project
 git clone <repo-url> && cd map-compiler
 
+# System dependency (Debian/Ubuntu)
+sudo apt-get install -y libgdal-dev gdal-bin python3-dev
+
 # Python environment
-python -m venv .venv
+uv venv
 source .venv/bin/activate
-pip install -e .
+uv pip install -e .
+uv pip install GDAL==$(gdal-config --version)
 
 # Database
 python server/manage.py migrate
