@@ -88,18 +88,26 @@ Open `http://localhost:5173` in a browser.
 
 | Tool | Purpose |
 |------|---------|
+| [uv](https://docs.astral.sh/uv/) | Python project and environment manager |
 | [ruff](https://docs.astral.sh/ruff/) | Python linter and formatter |
 | [pytest](https://docs.pytest.org/) | Python test runner (with pytest-django) |
 | [Vite](https://vite.dev/) | Frontend build tool and dev server |
 | [TypeScript](https://www.typescriptlang.org/) | Frontend type checking |
+| [oxlint](https://oxc.rs/docs/guide/usage/linter) | Frontend linter |
 | [Tailwind CSS](https://tailwindcss.com/) | Utility-first CSS framework |
 
 ```bash
 # Run Python tests
-pytest
+uv run pytest
+
+# Lint Python
+uv run ruff check server/
 
 # Run frontend type check and build
 cd web && npm run build
+
+# Lint frontend
+cd web && npm run lint
 ```
 
 ## Background
