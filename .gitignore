@@ -1,20 +1,14 @@
-nbs/example
-nbs/example2
-nbs/example3
-nbs/.ipynb_checkpoints
-nbs/out2019.tif
-server/core/LE70220491999322EDC01_stack.gtif
-server/core/LE70220491999322EDC01_stack.gtif.aux.xml
-server/core/out2019.tif
-server/core/model1.joblib
-server/cache
 data/
-.vscode
 *.tif
+*.tiff
+.vscode
 
 # Node / web
 node_modules/
 web/dist/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
