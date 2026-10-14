@@ -33,13 +33,14 @@ All raster operations are tile-wise (256×256 resampling), so response times sta
 map-compiler/
 ├── server/                 # Django backend
 │   ├── config/             #   Project settings & URL config
-│   ├── core/               #   Main app (views, models, urls)
-│   │   └── raster/         #   Geospatial domain logic (Band class, ML, helpers)
-│   └── compiler/           #   AST-based script compiler (parser, validator, executor)
+│   ├── compiler/           #   AST-based script compiler (parser, validator, executor)
+│   └── core/               #   Main app (views, models, urls)
+│       └── raster/         #   Geospatial domain logic (Band class, ML, helpers)
 ├── web/                    # React frontend (Vite + TypeScript)
 │   └── src/
 │       ├── components/     #   MapView, Editor, Console, Chart, DatasetSelector
 │       └── api/            #   Backend API client
+├── nbs/                    # Experiment notebooks (research log)
 ├── data/                   # Datasets directory (gitignored)
 ├── pyproject.toml          # Python project config, pytest & ruff settings
 └── LICENSE

@@ -1,13 +1,8 @@
-# Test Notebooks
-```
-nbs
-├── backend_trial.ipynb
-├── COGeotiff_trial.ipynb
-├── gdal_translate_trial.ipynb
-└── random_forest_trial.ipynb
-```
+# Experiment Notebooks
 
-- backend_trial.ipynb : Complete compiler_scripts testing in nb
-- COGeotiff_trial.ipynb : Experimenting on COGeotiff datasets with GDAL
-- gdal_translate_trial.ipynb : Experiments on translating bbox, from leaflet.js WMS request to GDAL translate format. And comparison of GDAL Translate and Warp functionalities.
-- random_forest_trial.ipynb : Testing RrandomForest implementations.
+Development notebooks used during the initial research and prototyping phase. These are kept as an experimental log and are not part of the running application.
+
+- **backend_trial.ipynb** — End-to-end compiler pipeline testing
+- **COGeotiff_trial.ipynb** — Cloud Optimized GeoTIFF access with GDAL
+- **gdal_translate_trial.ipynb** — Bounding box translation from Leaflet WMS requests to GDAL, comparison of GDAL Translate vs Warp
+- **random_forest.ipynb** — Random Forest classifier on GDAL datasets
