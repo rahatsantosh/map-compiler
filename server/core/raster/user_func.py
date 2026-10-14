@@ -16,36 +16,35 @@ Functions:
         float, float, float,
         Dictionary, int) -> django.http.response
 '''
-import numpy as np
-from PIL import Image
-import cv2
 import os
-import lxml.etree as ET
-from django.http import HttpResponse
 
-from .helpers import norm, apply_cmap
-from .core import *
-from .ml import *
+import cv2
+import lxml.etree as ET
+import numpy as np
+from django.http import HttpResponse
+from PIL import Image
+
+from .helpers import apply_cmap, norm
 
 
 def rasterPlot(layer, coordinate, coord_format="EPSG:4326", bands=None, style='bar'):
     """
     Returns graph of required coordinate in a Chart.js usable format.
-    
+
     Parameters:
         layer[string] -- Optimized-Geotiff Layer
         coordinate[list] -- coordinates to measure band data
         coord_format[string] -- Coordinate system used; default EPSG:4326
         bands[list] -- bands to be returned. On None uses all bands.
         style[string] -- graph type.
-    
+
     Returns:
         Dictionary in Chart.js readable format.
     """
     if bands is None:
         command = f"gdallocationinfo -xml -l_srs \"{coord_format}\" {layer} {coordinate[0]} {coordinate[1]}"
     else:
-        command = f"gdallocationinfo -xml"
+        command = "gdallocationinfo -xml"
         for b in bands:
             command += f" -b {b} "
         command += f"-l_srs \"{coord_format}\" {layer} {coordinate[0]} {coordinate[1]}"
@@ -71,15 +70,15 @@ def rasterPlot(layer, coordinate, coord_format="EPSG:4326", bands=None, style='b
 
 def setup(
     R, G=None, B=None,
-    weight=None, 
-    op_minR=0, op_maxR=1, 
-    op_minG=0, op_maxG=1, 
+    weight=None,
+    op_minR=0, op_maxR=1,
+    op_minG=0, op_maxG=1,
     op_minB=0, op_maxB=1,
     clip_minR=None, clip_maxR=None,
     clip_minG=None, clip_maxG=None,
     clip_minB=None, clip_maxB=None,
-    ip_minR=None, ip_maxR=None, 
-    ip_minG=None, ip_maxG=None, 
+    ip_minR=None, ip_maxR=None,
+    ip_minG=None, ip_maxG=None,
     ip_minB=None, ip_maxB=None,
     cmap=None,
     cmap_order=1
@@ -112,7 +111,7 @@ def setup(
         ip_maxB [float] -- Maximum range value for input single blue band
         cmap [Dictionary] -- Custom colour map in dictionary format
         cmap_order [int] -- Values: 0 or 1. Depends on whether cmap to be applied before or after normalization
-    
+
     Returns:
         response [django.http.response] -- 'png' media response of grayscale or rgb format depending on input bands
     """

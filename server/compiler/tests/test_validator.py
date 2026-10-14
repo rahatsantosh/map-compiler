@@ -1,4 +1,3 @@
-import pytest
 
 from compiler.parser import parse
 from compiler.validator import validate

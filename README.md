@@ -92,7 +92,6 @@ Open `http://localhost:5173` in a browser.
 | [uv](https://docs.astral.sh/uv/) | Python project and environment manager |
 | [ruff](https://docs.astral.sh/ruff/) | Python linter and formatter |
 | [pytest](https://docs.pytest.org/) | Python test runner (with pytest-django) |
-| [TypeScript](https://www.typescriptlang.org/) | Frontend language (typed JavaScript) |
 | [Vite](https://vite.dev/) | Frontend build tool and dev server |
 | [oxlint](https://oxc.rs/docs/guide/usage/linter) | Frontend linter |
 | [Tailwind CSS](https://tailwindcss.com/) | Utility-first CSS framework |

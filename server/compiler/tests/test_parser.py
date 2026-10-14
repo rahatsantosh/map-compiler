@@ -2,7 +2,7 @@ import ast
 
 import pytest
 
-from compiler.parser import parse, ParseError
+from compiler.parser import ParseError, parse
 
 
 class TestParse:

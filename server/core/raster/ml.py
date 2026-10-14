@@ -3,21 +3,22 @@
 Predefined Machine Learning Algorithms
 
 Classes:
-    
+
     RasterPCA
     RandomForest
 '''
-import numpy as np
-import joblib
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.decomposition import PCA
 import os
-from ..models import ModelCache
-from .helpers import prepare_data, dict_hash
 import time
-from .core import B, get_dataset
-from .storage_paths import *
 
+import joblib
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestClassifier
+
+from ..models import ModelCache
+from .core import B, get_dataset
+from .helpers import dict_hash, prepare_data
+from .storage_paths import PCA_CACHE, RANDOM_FOREST_CACHE
 
 TRAINING_POLL_INTERVAL = 0.5
 TRAINING_TIMEOUT = 120
@@ -34,7 +35,7 @@ def _wait_for_training(model_hash_id: str):
     raise TimeoutError(f"Training timed out for {model_hash_id}")
 
 
-class RasterPCA():
+class RasterPCA:
     """
     A class to perform Principal Component Analysis on multiple Raster Bands.
     Expected usage is compressing multiple bands into a single band.
@@ -72,13 +73,13 @@ class RasterPCA():
                 Unique session hash key. Can club together multiple requests from single session.
             saved_path : string (or) os.path
                 If loading saved PCA model, else None
-            **kwargs : 
+            **kwargs :
                 Arguments for sklearn PCA object
         """
         self.pca = joblib.load(saved_path) if saved_path is not None else PCA(**kwargs)
         self.sess_key = sess_key
         assert self.pca.n_components == 1, "RasterPCA should have only 1 output component. n_components should be 1"
-    
+
     def dump(self, path):
         """
         Save PCA model to custom path.
@@ -90,7 +91,7 @@ class RasterPCA():
                 Model storage path
         """
         joblib.dump(self.pca, path)
-    
+
     def load(self, path):
         """
         Loads saved PCA object. Uses joblib.load functionality
@@ -101,7 +102,7 @@ class RasterPCA():
                 Model storage path
         """
         self.pca = joblib.load(path)
-    
+
     # Private method
     def __prepare_train_data(self,data):
         """
@@ -120,7 +121,7 @@ class RasterPCA():
                         'layer':layer,
                         'bands':bands_list
                     }
-        
+
         Returns
         -------
             Training data : np.array
@@ -130,7 +131,7 @@ class RasterPCA():
         return np.array(
             [d.GetRasterBand(i).ReadAsArray().ravel() for i in data['bands']]
         ).T
-    
+
     # Private method
     def __prepare_infer_data(self,dataset=None,n_bands=None,bands=None):
         """
@@ -147,7 +148,7 @@ class RasterPCA():
             bands : np.array
                 Alternatively, required bands are directly given as an numpy 3D array. In this case
                 dataset and band_no parameters are to be left to default
-        
+
         Returns
         -------
             Training data : np.array
@@ -160,14 +161,14 @@ class RasterPCA():
         else:
             exit(0)
         return X
-    
+
     def fit(self, data):
         """
         Fit model to training data.
         Wrapper for sklearn.decomposition._pca.PCA.fit, with added functionality of
-        training only one of the multiple requests from a single session. This removes any redundant 
+        training only one of the multiple requests from a single session. This removes any redundant
         training sessions.
-        Model stored as temporary cache for access by other requests from the same session, or 
+        Model stored as temporary cache for access by other requests from the same session, or
         for other training sessions where the data hash is the same.
 
         Parameters
@@ -208,12 +209,12 @@ class RasterPCA():
         Transform data to single raster band.
         Wrapper for sklearn.decomposition._pca.PCA.transform, with added functionality inbuilt
         data preparation.
-        
+
         Parameters
         ----------
             **kwargs : List
                 Arguments for sklearn.decomposition._pca.PCA.transform
-        
+
         Returns
         -------
             Transformed map as an object of .core.B
@@ -222,7 +223,7 @@ class RasterPCA():
         X = self.pca.transform(X)
         X = X.reshape((256,256,self.pca.n_components))
         return B(band=X)
-    
+
     def fit_transform(self, data, **kwargs):
         """
         Perform both training and inference together
@@ -239,7 +240,7 @@ class RasterPCA():
                     }
             **kwargs : List
                 Arguments for sklearn.decomposition._pca.PCA.transform
-        
+
         Returns
         -------
             Transformed map as an object of .core.B
@@ -248,7 +249,7 @@ class RasterPCA():
         return self.transform(**kwargs)
 
 
-class RandomForest(object):
+class RandomForest:
     """
     A class to perform Random Forest Prediction on GDAL dataset.
 
@@ -280,7 +281,7 @@ class RandomForest(object):
         self.rf = joblib.load(saved_path) if saved_path is not None else RandomForestClassifier(**kwargs)
         self.class_prediction = None
         self.sess_key = sess_key
-    
+
     def dump(self, path):
         """
         Save RandomForest model to custom path.
@@ -292,7 +293,7 @@ class RandomForest(object):
                 Model storage path
         """
         joblib.dump(self.rf, path)
-    
+
     def load(self, path):
         """
         Loads saved RandomForest object. Uses joblib.load functionality
@@ -303,14 +304,14 @@ class RandomForest(object):
                 Model storage path
         """
         self.rf = joblib.load(path)
-    
+
     def fit(self, data):
         """
         Fit model to training data.
         Wrapper for sklearn.ensemble._forest.RandomForestClassifier.fit, with added functionality of
-        training only one of the multiple requests from a single session. This removes any redundant 
+        training only one of the multiple requests from a single session. This removes any redundant
         training sessions.
-        Model stored as temporary cache for access by other requests from the same session, or 
+        Model stored as temporary cache for access by other requests from the same session, or
         for other training sessions where the data hash is the same.
 
         Parameters
@@ -329,7 +330,7 @@ class RandomForest(object):
                         ]
                     }
         """
-        # hash_val can point to models in cache which have been trained on same data. 
+        # hash_val can point to models in cache which have been trained on same data.
         hash_val = dict_hash(data)
         modelHashId = self.sess_key + str(hash_val)
 
@@ -355,13 +356,13 @@ class RandomForest(object):
             except Exception:
                 _wait_for_training(modelHashId)
                 self.load(path=cache_path)
-    
+
     def predict(self, img, bands):
         """
         Predict class for dataset.
         Wrapper for sklearn.ensemble._forest.RandomForestClassifier.predict, with added functionality inbuilt
         data preparation.
-        
+
         Parameters
         ----------
             **kwargs : List
@@ -372,9 +373,9 @@ class RandomForest(object):
         img_as_array = np.take(img, bands, 2).reshape(-1,len(bands))
         self.class_prediction = self.rf.predict(img_as_array)
         self.class_prediction = self.class_prediction.reshape(img[:, :, 0].shape)
-        
+
         return self
-    
+
     @property
     def prediction_map(self):
         """

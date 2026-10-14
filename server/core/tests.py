@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory, TestCase
 
 
 class TestExtractParam(TestCase):
@@ -135,6 +135,7 @@ class TestListDatasetsView(TestCase):
 
     def test_finds_tif_files(self):
         import tempfile
+
         from core.views import list_datasets
 
         with tempfile.TemporaryDirectory() as tmpdir:

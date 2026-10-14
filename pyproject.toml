@@ -35,7 +35,11 @@ python_files = ["test_*.py", "tests.py"]
 [tool.ruff]
 target-version = "py310"
 line-length = 99
+extend-exclude = ["nbs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"server/core/raster/*" = ["N802", "N803", "N806", "N812"]

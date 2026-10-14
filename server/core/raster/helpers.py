@@ -15,12 +15,13 @@ Functions:
         , int, int, int, int, int, int
         , int, int, int, int, int, int) -> np.array, np.array, np.array
 '''
-from osgeo import gdal, osr
-import numpy as np
-from pyproj import CRS, Transformer
-from typing import Dict, Any
 import hashlib
 import json
+
+import numpy as np
+from osgeo import gdal, osr
+from pyproj import Transformer
+
 
 def dict_hash(dictionary):
     """
@@ -28,7 +29,7 @@ def dict_hash(dictionary):
 
         Arguments:
             dictionary[Dict[str, Any]] -- Dictionary to be hashed
-        
+
         Returns:
             String hash of dictionary
     """
@@ -40,10 +41,10 @@ def dict_hash(dictionary):
 def get_dataset_(layer='http://mobileapp.nesdr.gov.in/out2019.tif'):
     """
     Wrapper function for simple GDAL.Open() functionality
-        
+
         Arguments:
             layer[string] -- Optimized GeoTIFF dataset link
-        
+
         Returns:
             Object of type osgeo.gdal.Dataset
     """
@@ -112,7 +113,7 @@ def prepare_data(coord_format, data, bands, layer='http://mobileapp.nesdr.gov.in
     band_data = np.asarray(band_data).T
     band_data = np.reshape(band_data, (len(coordinates), len(bands)))
     return band_data, labels
-    
+
 def coord(projWin, coord_sys, src_coord_sys="EPSG:3857"):
     """
     Transform coordinates between systems

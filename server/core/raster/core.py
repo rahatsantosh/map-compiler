@@ -1,6 +1,6 @@
 '''
 [User Accessible]
-Core functionality for compiler script, including loading a GDAL dataset and performing basic 
+Core functionality for compiler script, including loading a GDAL dataset and performing basic
 mathematical operations on bands and more advanced statistical operations.
 
 Functions:
@@ -16,6 +16,7 @@ import numpy as np
 from osgeo import gdal
 
 from .helpers import coord
+
 
 def get_dataset(
         layer='http://mobileapp.nesdr.gov.in/out2019.tif',
@@ -73,7 +74,7 @@ def get_dataset(
     return gdal.Translate('',dataset,scaleParams=scaleParams, format='MEM')
 
 
-class B():
+class B:
     """
     A class to represent a single raster Band, and further enabling a
     multitude of operations among multiple bands
@@ -154,7 +155,7 @@ class B():
             self._band = band
         else:
             self._band = dataset.GetRasterBand(band_no).ReadAsArray()
-    
+
     @property
     def band(self):
         """
@@ -162,21 +163,21 @@ class B():
         Returns self._band attribute
         """
         return self._band
-    
+
     def __repr__(self):
         """
         Invoked when attempting to display object.
         Returns band attribute
         """
         return self._band
-    
+
     def __getitem__(self, index):
         """
         Invoked when object called as iterable.
         Returns pixel value
         """
         return self.band[index]
-    
+
     #Statistical Operations
     def mean(self, **kwargs):
         """
@@ -185,7 +186,7 @@ class B():
         Returns mean value
         """
         return np.mean(self._band, **kwargs)
-    
+
     def max(self, **kwargs):
         """
         Wrapper for np.ax, finds max value of band.
@@ -193,7 +194,7 @@ class B():
         Returns max value
         """
         return np.max(self._band, **kwargs)
-    
+
     def min(self, **kwargs):
         """
         Wrapper for np.min, finds min value of band.
@@ -201,7 +202,7 @@ class B():
         Returns min value
         """
         return np.min(self._band, **kwargs)
-    
+
     def std(self, **kwargs):
         """
         Wrapper for np.std, finds std value of band.
@@ -209,7 +210,7 @@ class B():
         Returns std value
         """
         return np.std(self._band, **kwargs)
-    
+
     #Arithmetic Operations
     def __add__(self,y):
         """
@@ -220,12 +221,12 @@ class B():
         ----------
             y : .B
                 Band to be added to self
-        
+
         Returns: .B
             self._band + y._band
         """
         return B(band=self._band+y.band)
-    
+
     def __sub__(self, y):
         """
         [Operator Overloading]
@@ -235,12 +236,12 @@ class B():
         ----------
             y : .B
                 Band to be subtracted from self
-        
+
         Returns: .B
             self._band - y._band
         """
         return B(band=self._band-y.band)
-    
+
     def __mul__(self, y):
         """
         [Operator Overloading]
@@ -250,7 +251,7 @@ class B():
         ----------
             y : .B (or) float
                 Band to be multiplied to self, (or) decimal number to be multiplied
-        
+
         Returns: .B
             self._band * y._band (or) self._band * y
         """
@@ -258,7 +259,7 @@ class B():
             return B(band=np.multiply(self._band,y.band))
         else:
             return B(band=self._band * y)
-    
+
     def __truediv__(self, y):
         """
         [Operator Overloading]
@@ -269,7 +270,7 @@ class B():
         ----------
             y : .B (or) float
                 Band to be divided with self, (or) decimal number to be divided
-        
+
         Returns: .B
             self._band / y._band (or) self._band / y
         """
@@ -277,7 +278,7 @@ class B():
             return B(band=np.divide(self._band, y.band, out=np.zeros_like(self._band), where=y.band!=0, casting="unsafe"))
         else:
             return B(band=self._band/y)
-    
+
     #Bitwise Operators
     def __and__(self, y):
         """
@@ -289,12 +290,12 @@ class B():
         ----------
             y : .B
                 Band to perform bitwise and with self
-        
+
         Returns: .B
             self._band & y._band
         """
         return B(band=np.bitwise_and(self._band,y))
-    
+
     def __or__(self, y):
         """
         [Operator Overloading]
@@ -305,12 +306,12 @@ class B():
         ----------
             y : .B
                 Band to perform bitwise or with self
-        
+
         Returns: .B
             self._band | y._band
         """
         return B(band=np.bitwise_or(self._band,y))
-    
+
     def __xor__(self, y):
         """
         [Operator Overloading]
@@ -321,24 +322,24 @@ class B():
         ----------
             y : .B
                 Band to perform bitwise xor with self
-        
+
         Returns: .B
             self._band ^ y._band
         """
         return B(band=np.bitwise_xor(self._band,y))
-    
+
     def __invert__(self):
         """
         [Operator Overloading]
         Simple bitwise not operator on y.
         Wrapper for np.invert
-        
+
         Returns: .B
             ~self._band
         """
         return B(band=np.invert(self._band))
-    
-    #Comparison Operators    
+
+    #Comparison Operators
     def __gt__(self, y):
         """
         [Operator Overloading]
@@ -349,12 +350,12 @@ class B():
         ----------
             y : .B
                 Band object to compare with self
-        
+
         Returns: .B
             self._band > y._band
         """
         return B(band=np.array(self._band>y))
-    
+
     def __ge__(self, y):
         """
         [Operator Overloading]
@@ -365,7 +366,7 @@ class B():
         ----------
             y : .B
                 Band object to compare with self
-        
+
         Returns: .B
             self._band >= y._band
         """
@@ -381,12 +382,12 @@ class B():
         ----------
             y : .B
                 Band object to compare with self
-        
+
         Returns: .B
             self._band < y._band
         """
         return B(band=np.array(self._band<y))
-    
+
     def __le__(self, y):
         """
         [Operator Overloading]
@@ -397,12 +398,12 @@ class B():
         ----------
             y : .B
                 Band object to compare with self
-        
+
         Returns: .B
             self._band <= y._band
         """
         return B(band=np.array(self._band<=y))
-    
+
     def __eq__(self, y):
         """
         [Operator Overloading]
@@ -413,12 +414,12 @@ class B():
         ----------
             y : .B
                 Band object to compare with self
-        
+
         Returns: .B
             self._band == y._band
         """
         return B(band=np.array(self._band==y))
-    
+
     def __ne__(self, y):
         """
         [Operator Overloading]
@@ -429,12 +430,12 @@ class B():
         ----------
             y : .B
                 Band object to compare with self
-        
+
         Returns: .B
             self._band != y._band
         """
         return B(band=np.array(self._band!=y))
-    
+
     #Convolution Operation
     def conv2D(self, kernel, padding=0, strides=1):
         """
@@ -448,7 +449,7 @@ class B():
                 Input band padding size
             strides : int
                 Convolution stride size
-        
+
         Returns:
             .B object containing Convolution result
         """
@@ -476,6 +477,6 @@ class B():
                     try:
                         if x % strides == 0:
                             output[x, y] = (kernel * imagePadded[x: x + xKernShape, y: y + yKernShape]).sum()
-                    except:
+                    except Exception:
                         break
         return B(band=output)

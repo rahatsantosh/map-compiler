@@ -1,7 +1,7 @@
 import pytest
 
+from compiler.executor import ExecutionError, ScriptExecutor
 from compiler.parser import parse
-from compiler.executor import ScriptExecutor, ExecutionError
 
 
 def run(source: str, env: dict | None = None) -> dict:
