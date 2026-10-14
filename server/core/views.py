@@ -4,6 +4,7 @@ from urllib.parse import unquote
 
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 
 from compiler import compile_and_execute
 from core.raster.user_func import rasterPlot, setup
@@ -120,3 +121,26 @@ def list_datasets(request):
     ]
 
     return JsonResponse({"datasets": datasets})
+
+
+@csrf_exempt
+def upload_dataset(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    uploaded = request.FILES.get("file")
+    if not uploaded:
+        return JsonResponse({"error": "No file provided"}, status=400)
+
+    if not uploaded.name.lower().endswith((".tif", ".tiff")):
+        return JsonResponse({"error": "Only .tif/.tiff files are supported"}, status=400)
+
+    data_dir = Path(settings.DATA_DIR)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    dest = data_dir / uploaded.name
+
+    with open(dest, "wb") as f:
+        for chunk in uploaded.chunks():
+            f.write(chunk)
+
+    return JsonResponse({"path": str(dest), "name": uploaded.name})
